@@ -27,7 +27,7 @@ jobs:
       - name: Zip tool
         uses: papeloto/action-zip@v1
         with:
-          files: ./
+          files: requirements.txt, LICENSE, README.md, CLA.md, ws-projects-cleanup/
           dest: ws-projects-cleanup.zip
       - name: Create Release
         uses: ncipollo/release-action@v1
