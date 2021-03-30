@@ -27,7 +27,7 @@ jobs:
       - name: Zip tool
         uses: papeloto/action-zip@v1
         with:
-          files: *
+          files: ./
           dest: ws-projects-cleanup.zip
       - uses: actions/upload-artifact@v2
         name: Upload package to GHP
