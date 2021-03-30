@@ -28,12 +28,12 @@ jobs:
         name: Upload package to GHP
         with:
           name: WS Python SDK
-          path: dist/*.whl
+          path: ws-project-cleanup/*
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
-          artifacts: "ws-project-cleanup/"
+          artifacts: "ws-project-cleanup/*"
           commit: "PSD-55"
           tag: "released"
