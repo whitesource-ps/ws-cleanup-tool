@@ -29,11 +29,6 @@ jobs:
         with:
           files: ./
           dest: ws-projects-cleanup.zip
-      - uses: actions/upload-artifact@v2
-        name: Upload package to GHP
-        with:
-          name: WS Projects Cleanup Tool
-          path: "*.zip"
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
