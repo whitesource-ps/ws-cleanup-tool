@@ -35,5 +35,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
           artifacts: "*.zip"
-          commit: "PSD-55"
           tag: "released"
