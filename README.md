@@ -1,7 +1,8 @@
 ![Logo](https://whitesource-resources.s3.amazonaws.com/ws-sig-images/Whitesource_Logo_178x44.png)  
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
-[![GitHub release](https://img.shields.io/github/release/whitesource-ps/wss-template.svg)](https://github.com/whitesource-ps/wss-template/releases/latest)  
+[![GitHub release](https://img.shields.io/github/v/release/whitesource-ps/ws-cleanup-tool)](https://github.com/whitesource-ps/ws-cleanup-tool/releases/latest)  
+
 # WhiteSource Projects Cleanup Tool
 ### Tool to archive projects from White Source Application.
 * The tool generates reports for each project in **WhiteSource** Organization which its last Update Date is more than the designated Days to Keep (default 60)
