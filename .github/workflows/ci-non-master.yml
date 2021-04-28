@@ -31,4 +31,4 @@ jobs:
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Full Test
-        run: python ./ws_projects_cleanup/projects_cleanup.py ./ws_projects_cleanup/params_ci.config ${{ secrets.WS_USER_KEY }} ${{ secrets.WS_ORG_TOKEN }}
+        run: python ./projects_cleanup/projects_cleanup.py ./projects_cleanup/params_ci.config ${{ secrets.WS_USER_KEY }} ${{ secrets.WS_ORG_TOKEN }}
