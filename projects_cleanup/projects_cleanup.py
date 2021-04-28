@@ -11,12 +11,10 @@ from ws_sdk.web import WS
 file_handler = logging.FileHandler(filename='cleanup.log')
 stdout_handler = logging.StreamHandler(sys.stdout)
 handlers = [file_handler, stdout_handler]
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s %(asctime)s %(thread)d: %(message)s',
-    handlers=handlers
-)
+logging.basicConfig(level=logging.INFO,
+                    format='%(levelname)s %(asctime)s %(thread)d: %(message)s',
+                    handlers=handlers
+                    )
 logger = logging.getLogger('Project Cleanup')
 
 c_org = None
@@ -27,7 +25,7 @@ archive_dir = None
 project_parallelism_level = 5
 
 
-def get_reports_to_archive():
+def get_reports_to_archive() -> tuple:
     products = c_org.get_products()
     excluded_products = config['DEFAULT']['ExcludedProductTokens'].strip().split(",")
     for prod in products:
@@ -68,7 +66,7 @@ def get_reports_to_archive():
     return all_projects, project_report_desc_list
 
 
-def generate_reports_manager(reports_desc_list):
+def generate_reports_manager(reports_desc_list: list) -> list:
     global project_parallelism_level
     manager = Manager()
     failed_proj_tokens_q = manager.Queue()
@@ -85,7 +83,7 @@ def generate_reports_manager(reports_desc_list):
     return failed_projects
 
 
-def worker_generate_report(report_desc, connector, w_f_proj_tokens_q):
+def worker_generate_report(report_desc:dict, connector: WS, w_f_proj_tokens_q: Manager().Queue()) -> None:
     logger.debug(f"Running report {report_desc['report_type']} on project: {report_desc['name']}. location: {report_desc['report_full_name']}")
     method_name = f"get_{report_desc['report_type']}"
     try:
@@ -105,12 +103,12 @@ def worker_generate_report(report_desc, connector, w_f_proj_tokens_q):
         w_f_proj_tokens_q.put(report_desc['token'])
 
 
-def delete_projects(proj_to_archive, failed_project_toks):
+def delete_projects(proj_to_archive: list, failed_project_toks: list) -> None:
     projects_to_delete = proj_to_archive.copy()
-    for project in projects_to_archive:
+    for project in proj_to_archive:
         if project['token'] in failed_project_toks:
             projects_to_delete.remove(project)
-    logger.info(f"Out of {len(projects_to_archive)} projects, {len(projects_to_delete)} projects will be deleted")
+    logger.info(f"Out of {len(proj_to_archive)} projects, {len(projects_to_delete)} projects will be deleted")
 
     if projects_to_delete:
         global dry_run, c_org
@@ -127,7 +125,7 @@ def worker_delete_project(conn, project, w_dry_run):
         conn.delete_scope(project['token'])
 
 
-def parse_config(config_file):
+def parse_config(config_file: str):
     global config, dry_run, report_types, archive_dir, project_parallelism_level
     config = ConfigParser()
     config.optionxform = str
