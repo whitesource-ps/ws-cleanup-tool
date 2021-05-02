@@ -153,6 +153,9 @@ if __name__ == '__main__':
         logging.info("Skipping Report Generation")
     else:
         failed_project_tokens = generate_reports_manager(reports_to_archive)
-    delete_projects(projects_to_archive, failed_project_tokens)
+    if config.getboolean('DEFAULT', 'SkipProjectDeletion'):
+        logging.info("Skipping Project Deletion")
+    else:
+        delete_projects(projects_to_archive, failed_project_tokens)
 
     logging.info(f"Project Cleanup finished. Run time: {datetime.now() - start_time}")
