@@ -83,7 +83,7 @@ def generate_reports_manager(reports_desc_list: list) -> list:
     return failed_projects
 
 
-def worker_generate_report(report_desc:dict, connector: WS, w_f_proj_tokens_q: Manager().Queue()) -> None:
+def worker_generate_report(report_desc:dict, connector: WS, w_f_proj_tokens_q) -> None:
     logger.debug(f"Running report {report_desc['report_type']} on project: {report_desc['name']}. location: {report_desc['report_full_name']}")
     method_name = f"get_{report_desc['report_type']}"
     try:
@@ -172,7 +172,7 @@ if __name__ == '__main__':
         logger.info("Skipping Report Generation")
     else:
         failed_project_tokens = generate_reports_manager(reports_to_archive)
-    if config.getboolean('DEFAULT', 'SkipProjectDeletion'):
+    if config.getboolean('DEFAULT', 'SkipProjectDeletion', False):
         logging.info("Skipping Project Deletion")
     else:
         delete_projects(projects_to_archive, failed_project_tokens)
