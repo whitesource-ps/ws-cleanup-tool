@@ -172,7 +172,7 @@ if __name__ == '__main__':
         logger.info("Skipping Report Generation")
     else:
         failed_project_tokens = generate_reports_manager(reports_to_archive)
-    if config.getboolean('DEFAULT', 'SkipProjectDeletion', False):
+    if config['DEFAULT'].getboolean('SkipProjectDeletion', False):
         logging.info("Skipping Project Deletion")
     else:
         delete_projects(projects_to_archive, failed_project_tokens)
