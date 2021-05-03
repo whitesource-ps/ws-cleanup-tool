@@ -1,14 +1,20 @@
-name: CI
-on: [push]
-
+name: WS Cleanup Tool - Non Master
+on:
+  push:
+    branches:
+      - '**'
+      - '!master'
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8]
     steps:
       - uses: actions/checkout@v2
+      - uses: UnicornGlobal/trufflehog-actions-scan@master
+        with:
+          branch: ${{ github.head_ref }}
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
@@ -24,15 +30,7 @@ jobs:
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --ignore=E501,F841
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      - name: Zip release
-        uses: papeloto/action-zip@v1
-        with:
-          files: requirements.txt LICENSE README.md CLA.md ws-projects-cleanup/
-          dest: ws-projects-cleanup.zip
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: ncipollo/release-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          allowUpdates: true
-          artifacts: "*.zip"
+      - name: Unittesting
+        run: python -m unittest
+      - name: Full Test
+        run: python ./projects_cleanup/projects_cleanup.py ./projects_cleanup/params_ci.config ${{ secrets.WS_USER_KEY }} ${{ secrets.WS_ORG_TOKEN }}

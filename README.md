@@ -9,7 +9,7 @@
 ### Tool to archive projects from White Source Application.
 * The tool generates reports for each project in **WhiteSource** Organization which its last Update Date is more than the designated Days to Keep (default 60)
 * The reports are saved in a designated location in form of: _[ReportsDir]/[PRODUCT NAME]/[PROJECT NAME]/[REPORT NAME]_  
-* **DryRun** flag  can be used to review the outcome of a run
+* **DryRun** flag can be used to review the outcome of a run. It will _NOT_ delete any project nor create reports 
 * **SkipReportGeneration** Can be used to delete projects without archiving
 
 ## Supported Operating Systems
