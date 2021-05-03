@@ -20,3 +20,6 @@ target/
 # Excluded Files - Naming Convention
 local-env.*
 /venv/
+/ws-projects-cleanup/conf/
+/projects_cleanup/cleanup.log
+/projects_cleanup/conf/
