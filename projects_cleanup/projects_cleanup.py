@@ -40,7 +40,7 @@ def get_reports_to_archive() -> tuple:
     project_report_desc_list = []
     for prod in products:                                 # Creating list of all reports of all projects to be produced
         curr_prod_proj_to_archive = []
-        curr_prod_projects = c_org.get_projects(prod['token'])
+        curr_prod_projects = c_org.get_projects(product_token=prod['token'])
         logger.info(f"Handling product: {prod['name']} number of projects: {len(curr_prod_projects)}")
         for project in curr_prod_projects:
             project_time = datetime.strptime(project['lastUpdatedDate'], "%Y-%m-%d %H:%M:%S +%f")
