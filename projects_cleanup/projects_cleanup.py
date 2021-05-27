@@ -177,5 +177,4 @@ if __name__ == '__main__':
     else:
         delete_projects(projects_to_archive, failed_project_tokens)
 
-
     logger.info(f"Project Cleanup finished. Run time: {datetime.now() - start_time}")
