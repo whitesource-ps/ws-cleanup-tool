@@ -1,12 +1,12 @@
 import logging
 import os
-import platform
 import re
 import sys
 from configparser import ConfigParser
 from datetime import datetime, timedelta
 from multiprocessing import Manager
 from multiprocessing.pool import ThreadPool
+
 from ws_sdk.web import WS
 
 file_handler = logging.FileHandler(filename='cleanup.log')
@@ -24,6 +24,13 @@ dry_run = False
 report_types = {}
 archive_dir = None
 project_parallelism_level = 5
+
+
+def replace_invalid_chars(directory: str) -> str:
+    invalid_chars = ['\\', '<', '>', ':', '"', '/', '|', '?', '*']
+    for char in invalid_chars:
+        directory = directory.replace(char, "_")
+    return directory
 
 
 def get_reports_to_archive() -> tuple:
@@ -48,39 +55,12 @@ def get_reports_to_archive() -> tuple:
             if project_time < archive_date:
                 logger.debug(
                     f"Project {project['name']} Token: {project['token']} Last update: {project['lastUpdatedDate']} will be archived")
-                # Characters validation start
-                product_archive_dir_exact = project['productName']
-                project_archive_dir_exact = project['name']
-                os_type = platform.system()
-                os_dict = {
-                    "Linux": ['/'],
-                    "Windows": ['\\', '<', '>', ':', '"', '/', '|', '?', '*', 'CON', 'PRN', 'AUX', 'NUL',
-                                'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-                                'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'],
-                    "Darwin": ['/', ':']
-                }
 
-                if os_type in os_dict.keys():
-                    for element in product_archive_dir_exact:
-                        if element in os_dict.__getitem__(os_type):
-                            product_archive_dir_exact = product_archive_dir_exact.replace(element, "_")
-                else:
-                    logger.info(
-                        f"The product: {project['productName']} directory was not created ")
+                # Characters validation
+                product_name = replace_invalid_chars(project['productName'])
+                project_name = replace_invalid_chars(project['name'])
 
-                if os_type in os_dict.keys():
-                    for element in project_archive_dir_exact:
-                        if element in os_dict.__getitem__(os_type):
-                            project_archive_dir_exact = project_archive_dir_exact.replace(element, "_")
-                else:
-                    logger.info(
-                        f"The project: {project['name']} directory was not created ")
-
-                project_archive_dir = os.path.join(os.path.join(archive_dir, product_archive_dir_exact),
-                                                   project_archive_dir_exact)
-                # Characters validation end
-
-                project['project_archive_dir'] = project_archive_dir
+                project['project_archive_dir'] = os.path.join(os.path.join(archive_dir, product_name), project_name)
                 curr_prod_proj_to_archive.append(project)
 
         logger.info(f"Found {len(curr_prod_proj_to_archive)} projects to archive on product: {prod['name']}")
