@@ -24,11 +24,11 @@ dry_run = False
 report_types = {}
 archive_dir = None
 project_parallelism_level = 5
+INVALID_CHARS = ['\\', '<', '>', ':', '"', '/', '|', '?', '*']
 
 
 def replace_invalid_chars(directory: str) -> str:
-    invalid_chars = ['\\', '<', '>', ':', '"', '/', '|', '?', '*']
-    for char in invalid_chars:
+    for char in INVALID_CHARS:
         directory = directory.replace(char, "_")
     return directory
 
