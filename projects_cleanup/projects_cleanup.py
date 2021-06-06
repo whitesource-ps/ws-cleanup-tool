@@ -6,6 +6,7 @@ from configparser import ConfigParser
 from datetime import datetime, timedelta
 from multiprocessing import Manager
 from multiprocessing.pool import ThreadPool
+
 from ws_sdk.web import WS
 
 file_handler = logging.FileHandler(filename='cleanup.log')
@@ -23,6 +24,13 @@ dry_run = False
 report_types = {}
 archive_dir = None
 project_parallelism_level = 5
+INVALID_CHARS = ['\\', '<', '>', ':', '"', '/', '|', '?', '*']
+
+
+def replace_invalid_chars(directory: str) -> str:
+    for char in INVALID_CHARS:
+        directory = directory.replace(char, "_")
+    return directory
 
 
 def get_reports_to_archive() -> tuple:
@@ -38,30 +46,38 @@ def get_reports_to_archive() -> tuple:
 
     all_projects = []
     project_report_desc_list = []
-    for prod in products:                                 # Creating list of all reports of all projects to be produced
+    for prod in products:  # Creating list of all reports of all projects to be produced
         curr_prod_proj_to_archive = []
         curr_prod_projects = c_org.get_projects(product_token=prod['token'])
         logger.info(f"Handling product: {prod['name']} number of projects: {len(curr_prod_projects)}")
         for project in curr_prod_projects:
             project_time = datetime.strptime(project['lastUpdatedDate'], "%Y-%m-%d %H:%M:%S +%f")
             if project_time < archive_date:
-                logger.debug(f"Project {project['name']} Token: {project['token']} Last update: {project['lastUpdatedDate']} will be archived")
-                project['project_archive_dir'] = os.path.join(os.path.join(archive_dir, project['productName']), project['name'])
+                logger.debug(
+                    f"Project {project['name']} Token: {project['token']} Last update: {project['lastUpdatedDate']} will be archived")
+
+                # Characters validation
+                product_name = replace_invalid_chars(project['productName'])
+                project_name = replace_invalid_chars(project['name'])
+
+                project['project_archive_dir'] = os.path.join(os.path.join(archive_dir, product_name), project_name)
                 curr_prod_proj_to_archive.append(project)
 
         logger.info(f"Found {len(curr_prod_proj_to_archive)} projects to archive on product: {prod['name']}")
 
-        for project in curr_prod_proj_to_archive:           # Creating list of report to-be-produced meta data
+        for project in curr_prod_proj_to_archive:  # Creating list of report to-be-produced meta data
             if not os.path.exists(project['project_archive_dir']):
                 os.makedirs(project['project_archive_dir'])
             for report_type in report_types.keys():
                 project_report = project.copy()
                 project_report['report_type'] = report_type
-                project_report['report_full_name'] = os.path.join(project_report['project_archive_dir'], report_types[report_type])
+                project_report['report_full_name'] = os.path.join(project_report['project_archive_dir'],
+                                                                  report_types[report_type])
                 project_report_desc_list.append(project_report)
 
         all_projects = all_projects + curr_prod_proj_to_archive
-    logger.info(f"Found total {len(all_projects)} projects to archive ({len(project_report_desc_list)} reports will be produced)")
+    logger.info(
+        f"Found total {len(all_projects)} projects to archive ({len(project_report_desc_list)} reports will be produced)")
 
     return all_projects, project_report_desc_list
 
@@ -71,7 +87,8 @@ def generate_reports_manager(reports_desc_list: list) -> list:
     manager = Manager()
     failed_proj_tokens_q = manager.Queue()
     with ThreadPool(processes=project_parallelism_level) as pool:
-        pool.starmap(worker_generate_report, [(report_desc, c_org, failed_proj_tokens_q) for report_desc in reports_desc_list])
+        pool.starmap(worker_generate_report,
+                     [(report_desc, c_org, failed_proj_tokens_q) for report_desc in reports_desc_list])
 
     failed_projects = set()
     while not failed_proj_tokens_q.empty():
@@ -83,8 +100,9 @@ def generate_reports_manager(reports_desc_list: list) -> list:
     return failed_projects
 
 
-def worker_generate_report(report_desc:dict, connector: WS, w_f_proj_tokens_q) -> None:
-    logger.debug(f"Running report {report_desc['report_type']} on project: {report_desc['name']}. location: {report_desc['report_full_name']}")
+def worker_generate_report(report_desc: dict, connector: WS, w_f_proj_tokens_q) -> None:
+    logger.debug(
+        f"Running report {report_desc['report_type']} on project: {report_desc['name']}. location: {report_desc['report_full_name']}")
     method_name = f"get_{report_desc['report_type']}"
     try:
         method_to_call = getattr(WS, method_name)
@@ -94,12 +112,14 @@ def worker_generate_report(report_desc:dict, connector: WS, w_f_proj_tokens_q) -
         else:
             logger.debug(f"Generating report: {report_desc['project_archive_dir']}")
             report = method_to_call(connector, token=report_desc['token'], report=True)
-            f = open(report_desc['report_full_name'], 'bw')
-            f.write(report)
+            f = open(report_desc['report_full_name'], 'bw')  # Creating the reports files in the ReportsDir
+            if report is not None:
+                f.write(report)
     except AttributeError:
         logger.error(f"report: {method_name} was not found")
     except Exception:
-        logger.exception(f"Error producing report: {report_desc['report_type']} on project {report_desc['name']}. Project will not be deleted.")
+        logger.exception(
+            f"Error producing report: {report_desc['report_type']} on project {report_desc['name']}. Project will not be deleted.")
         w_f_proj_tokens_q.put(report_desc['token'])
 
 
@@ -135,7 +155,7 @@ def parse_config(config_file: str):
     dry_run = config['DEFAULT'].getboolean('DryRun', False)
     archive_dir = config['DEFAULT'].get('ReportsDir', os.getcwd())
     reports = config['DEFAULT']['Reports'].replace(' ', '').split(",")
-    for report in reports:                                          # Generate SDK methods from the conf report list
+    for report in reports:  # Generate SDK methods from the conf report list
         report_types[re.sub('_report.+', '', report)] = report
     logger.info(f"Generating {len(report_types)} report types with {project_parallelism_level} threads")
 
