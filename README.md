@@ -19,15 +19,9 @@
 ## Pre-requisites
 * Python 3.6+
 
-## Installation
+## Installation and Execution:
 1. Download and unzip **ws-projects-cleanup.zip** 
+1. Install requirements: `pip install -r requirements.txt`
 1. Edit file **param.config** with the appropriate parameters
-
-## Execution
-####It is recommended to schedule the cleanup as overnight task
-1. `python projects_cleanup.py`
-
-OR
-1. `python projects_cleanup.py <CONFIG_FILE>` 
+1. Execute: `python projects_cleanup.py <CONFIG_FILE>` 
   
- 
