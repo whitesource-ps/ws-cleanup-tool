@@ -25,3 +25,15 @@
 1. Edit file **param.config** with the appropriate parameters
 1. Execute: `python projects_cleanup.py <CONFIG_FILE>` 
   
+Parameters Description (_params.config_)
+* ExcludedProductTokens - list of excluded products
+* WsUrl - URL of WhiteSource Application (optional) 
+* UserKey WhiteSource User Key
+* OrgToken Organization Token
+* DryRun - If True, tool will not create reports and delete projects
+* SkipReportGeneration - Whether to skip report generation  
+* SkipProjectDeletion - whether to skip project deletion
+* DaysToKeep - How many days of since last update of project to keep 
+* Reports - Report names to run ()
+* ReportsDir - Directory to save report in
+* ProjectParallelismLevel - Number of parallel process to generate reports  

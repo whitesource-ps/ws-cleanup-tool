@@ -160,7 +160,7 @@ def parse_config(config_file: str):
     logger.info(f"Generating {len(report_types)} report types with {project_parallelism_level} threads")
 
 
-def parse_cli():
+def parse_cli():        # For CI purposes
     params = {}
     for arg in [('ws_user_key', 2), ('ws_org_token', 3), ('ws_url', 4)]:
         try:
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     parse_config(conf_file)
     alt_params = parse_cli()
 
-    c_org = WS(url=config['DEFAULT'].get('WsUrl', alt_params.get('wss_url')),
+    c_org = WS(url=config['DEFAULT'].get('WsUrl', alt_params.get('ws_url')),
                user_key=config['DEFAULT'].get('UserKey', alt_params.get('ws_user_key')),
                token=config['DEFAULT'].get('OrgToken', alt_params.get('ws_org_token')))
     if dry_run:
