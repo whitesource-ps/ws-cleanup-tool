@@ -33,7 +33,9 @@ Parameters Description (_params.config_)
 * DryRun - If True, tool will not create reports and delete projects
 * SkipReportGeneration - Whether to skip report generation  
 * SkipProjectDeletion - whether to skip project deletion
-* DaysToKeep - How many days of since last update of project to keep 
-* Reports - Report names to run ()
-* ReportsDir - Directory to save report in
-* ProjectParallelismLevel - Number of parallel process to generate reports  
+* DaysToKeep - How many days since last update of a project to keep 
+* Reports - Report names to run
+* ReportsDir - Directory to save reports in
+* ProjectParallelismLevel - Number of parallel processes to generate reports.
+  
+  **note:** The optimal number is derived from the size of the environment, WhiteSource scope size, (memory and CPU) allocated for the server and runtime time constraints.    
