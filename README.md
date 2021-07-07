@@ -37,5 +37,5 @@ Parameters Description (_params.config_)
 * Reports - Report names to run
 * ReportsDir - Directory to save reports in
 * ProjectParallelismLevel - Number of parallel processes to generate reports.
-  
+ 
   **note:** The optimal number is derived from the size of the environment, WhiteSource scope size, (memory and CPU) allocated for the server and runtime time constraints.    
