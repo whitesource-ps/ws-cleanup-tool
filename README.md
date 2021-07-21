@@ -36,4 +36,6 @@ Parameters Description (_params.config_)
 * DaysToKeep - How many days since last update of a project to keep 
 * Reports - Report names to run
 * ReportsDir - Directory to save reports in
-* ProjectParallelismLevel - Number of parallel processes to generate reports  
+* ProjectParallelismLevel - Number of parallel processes to generate reports.
+ 
+  **note:** The optimal number is derived from the size of the environment, WhiteSource scope size, (memory and CPU) allocated for the server and runtime time constraints.    
