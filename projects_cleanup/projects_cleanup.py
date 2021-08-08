@@ -113,8 +113,7 @@ def worker_generate_report(report_desc: dict, connector: WS, w_f_proj_tokens_q) 
             logger.debug(f"Generating report: {report_desc['project_archive_dir']}")
             report = method_to_call(connector, token=report_desc['token'], report=True)
             f = open(report_desc['report_full_name'], 'bw')  # Creating the reports files in the ReportsDir
-            if report is not None:
-                f.write(report)
+            f.write(report)
     except AttributeError:
         logger.error(f"report: {method_name} was not found")
     except Exception:
