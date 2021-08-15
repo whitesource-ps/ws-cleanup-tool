@@ -26,6 +26,9 @@ archive_dir = None
 project_parallelism_level = 5
 INVALID_CHARS = ['\\', '<', '>', ':', '"', '/', '|', '?', '*']
 
+AGENT_NAME = "ps-cleanup-tool"
+AGENT_VERSION = "0.1.5"
+
 
 def replace_invalid_chars(directory: str) -> str:
     for char in INVALID_CHARS:
@@ -182,7 +185,8 @@ if __name__ == '__main__':
 
     c_org = WS(url=config['DEFAULT'].get('WsUrl', alt_params.get('ws_url')),
                user_key=config['DEFAULT'].get('UserKey', alt_params.get('ws_user_key')),
-               token=config['DEFAULT'].get('OrgToken', alt_params.get('ws_org_token')))
+               token=config['DEFAULT'].get('OrgToken', alt_params.get('ws_org_token')),
+               tool_details=(AGENT_NAME, AGENT_VERSION))
     if dry_run:
         logger.info("Running in DRY_RUN mode. Project will not be deleted and reports will not be generated!!!")
     projects_to_archive, reports_to_archive = get_reports_to_archive()
