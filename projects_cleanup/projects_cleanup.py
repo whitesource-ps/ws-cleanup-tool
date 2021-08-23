@@ -26,6 +26,10 @@ archive_dir = None
 project_parallelism_level = 5
 INVALID_CHARS = ['\\', '<', '>', ':', '"', '/', '|', '?', '*']
 
+PS = "ps-"
+AGENT_NAME = "cleanup-tool"
+AGENT_VERSION = "0.1.5"
+
 
 def replace_invalid_chars(directory: str) -> str:
     for char in INVALID_CHARS:
@@ -159,7 +163,7 @@ def parse_config(config_file: str):
     logger.info(f"Generating {len(report_types)} report types with {project_parallelism_level} threads")
 
 
-def parse_cli():        # For CI purposes
+def parse_cli():  # For CI purposes
     params = {}
     for arg in [('ws_user_key', 2), ('ws_org_token', 3), ('ws_url', 4)]:
         try:
@@ -182,7 +186,8 @@ if __name__ == '__main__':
 
     c_org = WS(url=config['DEFAULT'].get('WsUrl', alt_params.get('ws_url')),
                user_key=config['DEFAULT'].get('UserKey', alt_params.get('ws_user_key')),
-               token=config['DEFAULT'].get('OrgToken', alt_params.get('ws_org_token')))
+               token=config['DEFAULT'].get('OrgToken', alt_params.get('ws_org_token')),
+               tool_details=(PS + AGENT_NAME, AGENT_VERSION))
     if dry_run:
         logger.info("Running in DRY_RUN mode. Project will not be deleted and reports will not be generated!!!")
     projects_to_archive, reports_to_archive = get_reports_to_archive()
