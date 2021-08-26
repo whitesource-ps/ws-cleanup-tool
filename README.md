@@ -19,6 +19,10 @@
 ## Pre-requisites
 * Python 3.6+
 
+## WhiteSource User Permissions
+* The user used to execute the tool has to be with "Organization Administrator" or "Product Administrator" on all the maintained products and "Organization Auditor" permissions. 
+* It is recommended to use a service user.
+
 ## Installation and Execution:
 1. Download and unzip **ws-projects-cleanup.zip** 
 1. Install requirements: `pip install -r requirements.txt`
