@@ -163,7 +163,7 @@ def parse_config(config_file: str):
     logger.info(f"Generating {len(report_types)} report types with {project_parallelism_level} threads")
 
 
-def parse_cli():  # For CI purposes
+def parse_cli():
     params = {}
     for arg in [('ws_user_key', 2), ('ws_org_token', 3), ('ws_url', 4)]:
         try:
