@@ -28,7 +28,7 @@ INVALID_CHARS = ['\\', '<', '>', ':', '"', '/', '|', '?', '*']
 
 PS = "ps-"
 AGENT_NAME = "cleanup-tool"
-AGENT_VERSION = "0.1.6"
+AGENT_VERSION = "0.1.7"
 
 
 def replace_invalid_chars(directory: str) -> str:
