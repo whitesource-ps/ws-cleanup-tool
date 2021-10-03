@@ -13,7 +13,7 @@ file_handler = logging.FileHandler(filename='cleanup.log')
 stdout_handler = logging.StreamHandler(sys.stdout)
 handlers = [file_handler, stdout_handler]
 logging.basicConfig(level=logging.DEBUG if os.environ.get("DEBUG") else logging.INFO,
-                    format='%(levelname)s %(asctime)s %(thread)d: %(message)s',
+                    format='%(levelname)s %(asctime)s %(thread)d %(name)s: %(message)s',
                     handlers=handlers
                     )
 logger = logging.getLogger('Project Cleanup')
@@ -28,7 +28,7 @@ INVALID_CHARS = ['\\', '<', '>', ':', '"', '/', '|', '?', '*']
 
 PS = "ps-"
 AGENT_NAME = "cleanup-tool"
-AGENT_VERSION = "0.1.7"
+AGENT_VERSION = "0.1.7.1"
 
 
 def replace_invalid_chars(directory: str) -> str:
