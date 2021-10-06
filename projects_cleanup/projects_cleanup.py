@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 from multiprocessing import Manager
 from multiprocessing.pool import ThreadPool
 
+import ws_sdk.ws_constants
+from ws_sdk import ws_constants
 from ws_sdk.web import WS
 
 file_handler = logging.FileHandler(filename='cleanup.log')
@@ -24,25 +26,39 @@ dry_run = False
 report_types = {}
 archive_dir = None
 project_parallelism_level = 5
-INVALID_CHARS = ['\\', '<', '>', ':', '"', '/', '|', '?', '*']
 
 PS = "ps-"
 AGENT_NAME = "cleanup-tool"
-AGENT_VERSION = "0.1.7.1"
+AGENT_VERSION = "0.1.8"
 
 
 def replace_invalid_chars(directory: str) -> str:
-    for char in INVALID_CHARS:
+    for char in ws_sdk.ws_constants.INVALID_FS_CHARS:
         directory = directory.replace(char, "_")
     return directory
 
 
 def get_reports_to_archive() -> tuple:
-    products = c_org.get_products()
-    excluded_products = config['DEFAULT']['ExcludedProductTokens'].strip().split(",")
-    for prod in products:
-        if prod['token'] in excluded_products:
-            products.remove(prod)
+    def get_product_to_archive() -> list:
+        products_str = config['DEFAULT'].get('IncludedProductTokens')
+        prod_tokens = products_str.strip().split(",") if products_str else []
+        if prod_tokens:
+            logging.debug(f"Product tokens to check for cleanup: {prod_tokens}")
+            prods = [c_org.get_scopes(scope_type=ws_constants.PRODUCT, token=prod_t).pop() for prod_t in prod_tokens]
+        else:
+            logging.debug("Getting all products")
+            prods = c_org.get_products()
+
+        exc_prods_str = config['DEFAULT'].get('ExcludedProductTokens')
+        excluded_prod_tokens = exc_prods_str.strip().split(",") if exc_prods_str else []
+        if excluded_prod_tokens:
+            logging.debug(f"Product tokens to be excluded from cleanup: {excluded_prod_tokens}")
+            prods = [prod for prod in prods if prod['token'] not in excluded_prod_tokens]
+
+        return prods
+
+    products = get_product_to_archive()
+
     logger.info(f"{len(products)} Products to handle out of {len(products)}")
     days_to_keep = timedelta(days=config.getint('DEFAULT', 'DaysToKeep'))
     archive_date = datetime.utcnow() - days_to_keep
