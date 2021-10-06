@@ -35,10 +35,11 @@ AGENT_VERSION = "0.1.8"
 def replace_invalid_chars(directory: str) -> str:
     for char in ws_sdk.ws_constants.INVALID_FS_CHARS:
         directory = directory.replace(char, "_")
+
     return directory
 
 
-def get_product_to_archive() -> list:
+def get_products_to_archive() -> list:
     products_str = config['DEFAULT'].get('IncludedProductTokens')
     prod_tokens = products_str.strip().split(",") if products_str else []
     if prod_tokens:
@@ -59,7 +60,7 @@ def get_product_to_archive() -> list:
 
 
 def get_reports_to_archive() -> tuple:
-    products = get_product_to_archive()
+    products = get_products_to_archive()
     logger.info(f"{len(products)} Products to handle out of {len(products)}")
     days_to_keep = timedelta(days=config.getint('DEFAULT', 'DaysToKeep'))
     archive_date = datetime.utcnow() - days_to_keep
@@ -91,7 +92,6 @@ def get_projects_and_reports(archive_date, products) -> tuple:
 
 def get_prod_projects_and_reports_w(archive_date, prod, ws_conn, projects_to_archive_q, project_report_desc_list_q):
     curr_prod_proj_to_archive = []
-    logger.debug(f"About to handle product: {prod['name']} token type: {type(prod['token'])}")
     curr_prod_projects = ws_conn.get_projects(product_token=prod['token'])
     logger.info(f"Handling product: {prod['name']} number of projects: {len(curr_prod_projects)}")
 
