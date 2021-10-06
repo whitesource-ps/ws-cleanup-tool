@@ -38,25 +38,26 @@ def replace_invalid_chars(directory: str) -> str:
     return directory
 
 
+def get_product_to_archive() -> list:
+    products_str = config['DEFAULT'].get('IncludedProductTokens')
+    prod_tokens = products_str.strip().split(",") if products_str else []
+    if prod_tokens:
+        logging.debug(f"Product tokens to check for cleanup: {prod_tokens}")
+        prods = [c_org.get_scopes(scope_type=ws_constants.PRODUCT, token=prod_t).pop() for prod_t in prod_tokens]
+    else:
+        logging.debug("Getting all products")
+        prods = c_org.get_products()
+
+    exc_prods_str = config['DEFAULT'].get('ExcludedProductTokens')
+    excluded_prod_tokens = exc_prods_str.strip().split(",") if exc_prods_str else []
+    if excluded_prod_tokens:
+        logging.debug(f"Product tokens to be excluded from cleanup: {excluded_prod_tokens}")
+        prods = [prod for prod in prods if prod['token'] not in excluded_prod_tokens]
+
+    return prods
+
+
 def get_reports_to_archive() -> tuple:
-    def get_product_to_archive() -> list:
-        products_str = config['DEFAULT'].get('IncludedProductTokens')
-        prod_tokens = products_str.strip().split(",") if products_str else []
-        if prod_tokens:
-            logging.debug(f"Product tokens to check for cleanup: {prod_tokens}")
-            prods = [c_org.get_scopes(scope_type=ws_constants.PRODUCT, token=prod_t).pop() for prod_t in prod_tokens]
-        else:
-            logging.debug("Getting all products")
-            prods = c_org.get_products()
-
-        exc_prods_str = config['DEFAULT'].get('ExcludedProductTokens')
-        excluded_prod_tokens = exc_prods_str.strip().split(",") if exc_prods_str else []
-        if excluded_prod_tokens:
-            logging.debug(f"Product tokens to be excluded from cleanup: {excluded_prod_tokens}")
-            prods = [prod for prod in prods if prod['token'] not in excluded_prod_tokens]
-
-        return prods
-
     products = get_product_to_archive()
 
     logger.info(f"{len(products)} Products to handle out of {len(products)}")
