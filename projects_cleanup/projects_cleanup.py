@@ -53,13 +53,13 @@ def get_product_to_archive() -> list:
     if excluded_prod_tokens:
         logging.debug(f"Product tokens to be excluded from cleanup: {excluded_prod_tokens}")
         prods = [prod for prod in prods if prod['token'] not in excluded_prod_tokens]
+    logging.debug(f"Product names for cleanup check: {[prod['name'] for prod in prods]}")
 
     return prods
 
 
 def get_reports_to_archive() -> tuple:
     products = get_product_to_archive()
-
     logger.info(f"{len(products)} Products to handle out of {len(products)}")
     days_to_keep = timedelta(days=config.getint('DEFAULT', 'DaysToKeep'))
     archive_date = datetime.utcnow() - days_to_keep
@@ -91,6 +91,7 @@ def get_projects_and_reports(archive_date, products) -> tuple:
 
 def get_prod_projects_and_reports_w(archive_date, prod, ws_conn, projects_to_archive_q, project_report_desc_list_q):
     curr_prod_proj_to_archive = []
+    logger.debug(f"About to handle product: {prod['name']} token type: {type(prod['token'])}")
     curr_prod_projects = ws_conn.get_projects(product_token=prod['token'])
     logger.info(f"Handling product: {prod['name']} number of projects: {len(curr_prod_projects)}")
 
