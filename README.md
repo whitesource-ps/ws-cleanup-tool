@@ -30,6 +30,7 @@
 1. Execute: `python projects_cleanup.py <CONFIG_FILE>` 
   
 ## Parameters Description (_params.config_)
+* IncludedProductTokens - list of included products
 * ExcludedProductTokens - list of excluded products
 * WsUrl - URL of WhiteSource Application (optional) 
 * UserKey WhiteSource User Key
