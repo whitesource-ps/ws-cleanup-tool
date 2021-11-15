@@ -7,9 +7,9 @@
 
 # WhiteSource Projects Cleanup Tool
 ### Tool to archive projects from White Source Application.
-* The tool generates reports for each project in **WhiteSource** Organization which its last Update Date is more than the designated Days to Keep (default 60)
+* The tool generates reports for each project in **WhiteSource** Organization whose last Update Date exceeds the designated Days to Keep (default 60)
 * The reports are saved in a designated location in form of: _[ReportsDir]/[PRODUCT NAME]/[PROJECT NAME]/[REPORT NAME]_  
-* **DryRun** flag can be used to review the outcome of a run. It will _NOT_ delete any project nor create reports 
+* The **DryRun** flag can be used to review the outcome of a run. It will _NOT_ delete any project nor create reports 
 * **SkipReportGeneration** Can be used to delete projects without archiving
 
 ## Supported Operating Systems
@@ -20,13 +20,13 @@
 * Python 3.6+
 
 ## Permissions
-* The user used to execute the tool has to be with "Organization Administrator" or "Product Administrator" on all the maintained products and "Organization Auditor" permissions. 
+* The user used to execute the tool has to have "Organization Administrator" or "Product Administrator" on all the maintained products and "Organization Auditor" permissions. 
 * It is recommended to use a service user.
 
 ## Installation and Execution:
 1. Download and unzip **ws-projects-cleanup.zip** 
 1. Install requirements: `pip install -r requirements.txt`
-1. Edit file **param.config** with the appropriate parameters
+1. Edit the **param.config** file with the appropriate parameters
 1. Execute: `python projects_cleanup.py <CONFIG_FILE>` 
   
 ## Parameters Description (_params.config_)
