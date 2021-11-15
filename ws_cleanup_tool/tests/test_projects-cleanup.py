@@ -2,7 +2,7 @@ import unittest
 from unittest import TestCase
 import ws_sdk
 
-from projects_cleanup import projects_cleanup
+from ws_cleanup_tool import cleanup_tool
 
 
 class TestProjectsCleanup(TestCase):
