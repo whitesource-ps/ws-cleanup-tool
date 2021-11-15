@@ -16,12 +16,12 @@ jobs:
       matrix:
         python-version: [3.7, 3.8, 3.9]
     steps:
-     - name: Set Environment Variables
-       run: |
-        echo "TOOL_DIR=ws_$TOOL_NAME" >> $GITHUB_ENV
-        if [[ $GITHUB_REF == refs/tags/* ]]; then
-          echo "VERSION=$(echo ${{github.ref}} |  sed -r 's/^[\/a-zA-z-]+//')" >> $GITHUB_ENV
-        fi
+      - name: Set Environment Variables
+        run: |
+          echo "TOOL_DIR=ws_$TOOL_NAME" >> $GITHUB_ENV
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            echo "VERSION=$(echo ${{github.ref}} |  sed -r 's/^[\/a-zA-z-]+//')" >> $GITHUB_ENV
+          fi
       - uses: actions/checkout@v2
       - uses: UnicornGlobal/trufflehog-actions-scan@master
         with:
