@@ -15,10 +15,10 @@ from ws_sdk.web import WS
 
 from ws_cleanup_tool._version import __version__, __tool_name__, __description__
 
-skip_report_generation = bool(os.environ.get("skip_report_generation", "False"))
-skip_project_deletion = bool(os.environ.get("skip_project_deletion", "False"))
+skip_report_generation = bool(os.environ.get("SKIP_REPORT_GENERATION", 0))
+skip_project_deletion = bool(os.environ.get("SKIP_PROJECT_DELETION", 0))
 
-logging.basicConfig(level=logging.DEBUG if bool(os.environ.get("DEBUG", False)) is True else logging.INFO,
+logging.basicConfig(level=logging.DEBUG if bool(os.environ.get("DEBUG", "false")) is True else logging.INFO,
                     handlers=[logging.StreamHandler(stream=sys.stdout)],
                     format='%(levelname)s %(asctime)s %(thread)d %(name)s: %(message)s',
                     datefmt='%y-%m-%d %H:%M:%S')
@@ -133,6 +133,9 @@ def get_reports_to_archive(projects_to_archive: list) -> list:
 
 @dataclass
 class Config:
+    ws_url: str
+    ws_token: str
+    ws_user_key: str
     excluded_product_tokens: list
     included_product_tokens: list
     only_include_projects_with_comment: str  # scan_type = default
@@ -140,8 +143,6 @@ class Config:
     to_keep: int
     number_of_projects_to_retain: int
     dry_run: bool
-    skip_report_generation: bool
-    skip_project_deletion: bool
     report_types: str
     reports: list
     archive_dir: str
@@ -150,9 +151,11 @@ class Config:
 
 
 def parse_config():
-    global conf
+    def get_conf_value(c_p_val, alt_val):
+        return c_p_val if c_p_val else alt_val
 
-    if len(sys.argv) < 3:        # Cover no conf file or only conf file
+    global conf
+    if len(sys.argv) < 3:                             # Covers no conf file or only conf file
         if len(sys.argv) == 1:
             conf_file = "params.config"
         else:
@@ -167,21 +170,24 @@ def parse_config():
                 config.read(conf_file)
 
                 conf = Config(
-                    excluded_product_tokens=config['DEFAULT'].get("ExcludedProductTokens"),
-                    included_product_tokens=config['DEFAULT'].get("IncludedProductTokens"),
+                    ws_url=config['DEFAULT'].get("WsUrl"),
+                    ws_token=get_conf_value(config['DEFAULT'].get("OrgToken"), os.environ.get("WS_TOKEN")),
+                    ws_user_key=get_conf_value(config['DEFAULT'].get("UserKey"), os.environ.get("WS_USER_KEY")),
+                    excluded_product_tokens=config['DEFAULT'].get("ExcludedProductTokens", []),
+                    included_product_tokens=config['DEFAULT'].get("IncludedProductTokens", []),
                     only_include_projects_with_comment=config['DEFAULT'].getboolean("OnlyIncludeProjectsWithComments", False),
                     operation_mode=config['DEFAULT'].get("OperationMode", "FilterProjectsByTime"),
                     to_keep=config['DEFAULT'].getint("ToToKeep", 5),
                     number_of_projects_to_retain=config['DEFAULT'].getint("NumberOfProjectsToRetain", 1),
-                    dry_run=bool(os.environ.get("DRY_RUN", False)),
+                    dry_run=bool(os.environ.get("DRY_RUN", 0)),
                     archive_dir=config['DEFAULT'].get('ReportsDir', os.getcwd()),
                     report_types=config['DEFAULT'].get('Reports'),
                     reports=None,
                     project_parallelism_level=config['DEFAULT'].getint('ProjectParallelismLevel', 5),
                     ws_conn=None)
         else:
-            logging.error(f"Error reading configuration file: {conf_file}")
-            return
+            logging.error(f"No configuration file found at: {conf_file}")
+            raise FileNotFoundError
     else:
         parser = argparse.ArgumentParser(description=__description__)
         parser.add_argument('-u', '--userKey', help="WS User Key", dest='ws_user_key', required=True)
@@ -191,22 +197,21 @@ def parse_config():
         parser.add_argument('-m', '--operation_mode', help="Archive operation method", dest='operation_mode', default="FilterProjectsByUpdateTime",
                             choices=["FilterProjectsByUpdateTime", "FilterProjectsByLastCreatedCopies"])        #TODO AUTOMATE THIS
         parser.add_argument('-o', '--out', help="Output directory", dest='archive_dir', default=os.getcwd())
-        parser.add_argument('-e', '--excludedProductTokens', help="Output directory", dest='excluded_product_tokens', default=None)
-        parser.add_argument('-i', '--IncludedProductTokens', help="Output directory", dest='included_product_tokens', default=None)
+        parser.add_argument('-e', '--excludedProductTkens', help="Excluded list", dest='excluded_product_tokens', default=[])
+        parser.add_argument('-i', '--IncludedProductTokens', help="Included list", dest='included_product_tokens', default=[])
         parser.add_argument('-c', '--OnlyIncludeProjectsWithComments', help="Output directory", dest='only_include_projects_with_comment', default=False)
         parser.add_argument('-r', '--ToKeep', help="Number of days to keep in FilterProjectsByUpdateTime or number of copies in FilterProjectsByLastCreatedCopies", dest='to_keep', type=int, default=5)
         parser.add_argument('-p', '--ProjectParallelismLevel', help="Project parallelism level", dest='project_parallelism_level', type=int, default=5)
         parser.add_argument('-y', '--DryRun', help="Whether to run the tool without performing anything", dest='dry_run', default=False)
         conf = parser.parse_args()
 
+    conf.included_product_tokens = conf.included_product_tokens.replace(" ", "").split(",")
+    conf.excluded_product_tokens = conf.excluded_product_tokens.replace(" ", "").split(",")
     conf.reports = get_reports(conf.report_types)
     conf.ws_conn = WS(url=conf.ws_url,
                       user_key=conf.ws_user_key,
                       token=conf.ws_token,
                       tool_details=(f"ps-{__tool_name__.replace('_', '-')}", __version__))
-
-    logger.info(f"Generating {len(conf.reports)} report types with {conf.project_parallelism_level} threads")
-
     return conf
 
 
@@ -235,25 +240,21 @@ def replace_invalid_chars(directory: str) -> str:
 
 
 def get_products_to_archive(included_product_tokens: list, excluded_product_tokens: list) -> list:
-    products_str = included_product_tokens
-    prod_tokens = products_str.strip().split(",") if products_str else []
-    if prod_tokens:
-        logger.debug(f"Product tokens to check for cleanup: {prod_tokens}")
-        prods = [conf.ws_conn.get_scopes(scope_type=ws_constants.PRODUCT, token=prod_t).pop() for prod_t in prod_tokens]
+    if included_product_tokens:
+        logger.debug(f"Product tokens to check for cleanup: {included_product_tokens}")
+        prods = [conf.ws_conn.get_scopes(scope_type=ws_constants.PRODUCT, token=prod_t).pop() for prod_t in included_product_tokens]
     else:
         logger.debug("Getting all products")
         prods = conf.ws_conn.get_products()
 
-    exc_prods_str = excluded_product_tokens
-    excluded_prod_tokens = exc_prods_str.strip().split(",") if exc_prods_str else []
+    all_prods_n = len(prods)
+    if excluded_product_tokens:
+        logger.debug(f"Product tokens configured to be excluded from cleanup: {excluded_product_tokens}")
+        prods = [prod for prod in prods if prod['token'] not in excluded_product_tokens]
 
-    all_prods = len(prods)
-    if excluded_prod_tokens:
-        logger.debug(f"Product tokens to be excluded from cleanup: {excluded_prod_tokens}")
-        prods = [prod for prod in prods if prod['token'] not in excluded_prod_tokens]
-    logger.debug(f"Product names for cleanup check: {[prod['name'] for prod in prods]}")
+    logger.info(f"Product names for cleanup check: {[prod['name'] for prod in prods]}")
 
-    logger.info(f"{all_prods} Products to handle out of {len(prods)}")
+    logger.info(f"{all_prods_n} Products to handle out of {len(prods)}")
 
     return prods
 
@@ -317,7 +318,12 @@ def worker_delete_project(conn, project, w_dry_run):
 def main():
     global conf
     start_time = datetime.now()
-    parse_config()
+    try:
+        parse_config()
+    except FileNotFoundError:
+        exit(-1)
+
+    logger.info(f"Starting project cleanup in {conf.operation_mode} archive mode. Generating {len(conf.reports)} report types with {conf.project_parallelism_level} threads")
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
     projects_filter = FilterStrategy(eval(conf.operation_mode)(products_to_clean))   # Creating and initiating the strategy class
     projects_to_archive = projects_filter.execute()
