@@ -53,11 +53,12 @@ jobs:
       - name: Install Wheel package
         run: ls -1 dist/*.whl | xargs pip install
       - name: Full Test
-        run: cleanup_tool ./projects_cleanup/params_ci.config
+        run: cleanup_tool ./ws_cleanup_tool/params_ci.config
         env:
           WS_USER_KEY: ${{ secrets.WS_USER_KEY }}
           WS_TOKEN: ${{ secrets.WS_ORG_TOKEN }}
           SKIP_PROJECT_DELETION: 1
+          DRY_RUN: 1
       - name: Publish to Test PyPI
         if: startsWith(github.ref, 'refs/tags/test-v')
         uses: pypa/gh-action-pypi-publish@release/v1

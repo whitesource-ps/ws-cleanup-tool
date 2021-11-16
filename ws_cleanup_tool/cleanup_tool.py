@@ -176,7 +176,7 @@ def parse_config():
                     excluded_product_tokens=config['DEFAULT'].get("ExcludedProductTokens", []),
                     included_product_tokens=config['DEFAULT'].get("IncludedProductTokens", []),
                     only_include_projects_with_comment=config['DEFAULT'].getboolean("OnlyIncludeProjectsWithComments", False),
-                    operation_mode=config['DEFAULT'].get("OperationMode", "FilterProjectsByTime"),
+                    operation_mode=config['DEFAULT'].get("OperationMode", FilterProjectsByUpdateTime.__name__),
                     to_keep=config['DEFAULT'].getint("ToToKeep", 5),
                     number_of_projects_to_retain=config['DEFAULT'].getint("NumberOfProjectsToRetain", 1),
                     dry_run=bool(os.environ.get("DRY_RUN", 0)),
