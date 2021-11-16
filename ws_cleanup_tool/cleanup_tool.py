@@ -325,7 +325,7 @@ def main():
 
     logger.info(f"Starting project cleanup in {conf.operation_mode} archive mode. Generating {len(conf.reports)} report types with {conf.project_parallelism_level} threads")
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
-    projects_filter = FilterStrategy(eval(conf.operation_mode)(products_to_clean))   # Creating and initiating the strategy class
+    projects_filter = FilterStrategy(globals()[conf.operation_mode](products_to_clean))   # Creating and initiating the strategy class
     projects_to_archive = projects_filter.execute()
     reports_to_archive = get_reports_to_archive(projects_to_archive)
     failed_project_tokens = []
