@@ -155,12 +155,17 @@ def parse_config():
         return c_p_val if c_p_val else alt_val
 
     global conf
-    if len(sys.argv) < 3:                             # Covers no conf file or only conf file
-        if len(sys.argv) == 1:
-            conf_file = "params.config"
-        else:
-            conf_file = sys.argv[1]
 
+    if len(sys.argv) < 3:
+        maybe_config_file = True
+    if len(sys.argv) == 1:
+        conf_file = "params.config"
+    elif not sys.argv[1].startswith('-'):
+        conf_file = sys.argv[1]
+    else:
+        maybe_config_file = False
+
+    if maybe_config_file:                             # Covers no conf file or only conf file
         if os.path.exists(conf_file):
             logger.info(f"loading configuration from file: {conf_file}")
             config = ConfigParser()
@@ -173,8 +178,8 @@ def parse_config():
                     ws_url=config['DEFAULT'].get("WsUrl"),
                     ws_token=get_conf_value(config['DEFAULT'].get("OrgToken"), os.environ.get("WS_TOKEN")),
                     ws_user_key=get_conf_value(config['DEFAULT'].get("UserKey"), os.environ.get("WS_USER_KEY")),
-                    excluded_product_tokens=config['DEFAULT'].get("ExcludedProductTokens", []),
-                    included_product_tokens=config['DEFAULT'].get("IncludedProductTokens", []),
+                    excluded_product_tokens=config['DEFAULT'].get("ExcludedProductTokens"),
+                    included_product_tokens=config['DEFAULT'].get("IncludedProductTokens"),
                     only_include_projects_with_comment=config['DEFAULT'].getboolean("OnlyIncludeProjectsWithComments", False),
                     operation_mode=config['DEFAULT'].get("OperationMode", FilterProjectsByUpdateTime.__name__),
                     to_keep=config['DEFAULT'].getint("ToToKeep", 5),
@@ -195,10 +200,10 @@ def parse_config():
         parser.add_argument('-a', '--wsUrl', help="WS URL", dest='ws_url')
         parser.add_argument('-t', '--ReportTypes', help="Report Types to generate (comma seperated list)", dest='report_types')
         parser.add_argument('-m', '--operation_mode', help="Archive operation method", dest='operation_mode', default="FilterProjectsByUpdateTime",
-                            choices=["FilterProjectsByUpdateTime", "FilterProjectsByLastCreatedCopies"])        #TODO AUTOMATE THIS
+                            choices=[s.__name__ for s in FilterProjectsInt.__subclasses__()])
         parser.add_argument('-o', '--out', help="Output directory", dest='archive_dir', default=os.getcwd())
-        parser.add_argument('-e', '--excludedProductTkens', help="Excluded list", dest='excluded_product_tokens', default=[])
-        parser.add_argument('-i', '--IncludedProductTokens', help="Included list", dest='included_product_tokens', default=[])
+        parser.add_argument('-e', '--excludedProductTokens', help="Excluded list", dest='excluded_product_tokens', default="")
+        parser.add_argument('-i', '--IncludedProductTokens', help="Included list", dest='included_product_tokens', default="")
         parser.add_argument('-c', '--OnlyIncludeProjectsWithComments', help="Output directory", dest='only_include_projects_with_comment', default=False)
         parser.add_argument('-r', '--ToKeep', help="Number of days to keep in FilterProjectsByUpdateTime or number of copies in FilterProjectsByLastCreatedCopies", dest='to_keep', type=int, default=5)
         parser.add_argument('-p', '--ProjectParallelismLevel', help="Project parallelism level", dest='project_parallelism_level', type=int, default=5)
