@@ -1,4 +1,5 @@
 import argparse
+import copy
 import logging
 import os
 import sys
@@ -8,8 +9,6 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from multiprocessing import Manager
 from multiprocessing.pool import ThreadPool
-
-import ws_sdk.ws_constants
 from ws_sdk import ws_constants, ws_errors
 from ws_sdk.web import WS
 
@@ -24,6 +23,7 @@ logging.basicConfig(level=logging.DEBUG if bool(os.environ.get("DEBUG", "false")
                     datefmt='%y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__tool_name__)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('root').setLevel(logging.INFO)
 
 conf = None
 
@@ -40,10 +40,31 @@ def extract_from_q(projects_to_archive_q):
 class FilterProjectsInt(ABC):
     def __init__(self, products_to_clean):
         self.products_to_clean = products_to_clean
+        self.should_filter_by_tag = True if conf.analyzed_project_tag else False
 
     @abstractmethod
     def get_projects_to_archive(self):
         ...
+
+    def is_valid_project(self, project):
+        def is_tag_exist(p):
+            project_metadata_d = p.get('project_metadata_d', {})
+            if conf.analyzed_project_tag_t[0] in project_metadata_d.keys() \
+                    and project_metadata_d[conf.analyzed_project_tag_t[0]] == conf.analyzed_project_tag_t[1]:
+                return True
+            else:
+                return False
+
+        ret = True
+        if not self.should_filter_by_tag:
+            logging.debug(f"Project {project['name']} is valid")
+        elif self.should_filter_by_tag and is_tag_exist(project):
+            logging.debug(f"Project {project['name']} contains appropriate key:value pair: {conf.analyzed_project_tag_t}")
+        else:
+            logging.debug(f"Project {project['name']} does not contain appropriate key:value pair: {conf.analyzed_project_tag_t}")
+            ret = False
+
+        return ret
 
 
 class FilterStrategy:
@@ -51,13 +72,14 @@ class FilterStrategy:
         self._filter_projects = filter_projects
 
     def execute(self):
-        projects_to_archive = self._filter_projects.get_projects_to_archive()
-        for project in projects_to_archive:
+        projects = self._filter_projects.get_projects_to_archive()
+
+        for project in projects:
             product_name = replace_invalid_chars(project['productName'])
             project_name = replace_invalid_chars(project['name'])
             project['project_archive_dir'] = os.path.join(os.path.join(conf.archive_dir, product_name), project_name)
 
-        return projects_to_archive
+        return projects
 
 
 class FilterProjectsByUpdateTime(FilterProjectsInt):
@@ -73,20 +95,15 @@ class FilterProjectsByUpdateTime(FilterProjectsInt):
                          [(archive_date, prod, conf.ws_conn, projects_to_archive_q) for prod in self.products_to_clean])
         return extract_from_q(projects_to_archive_q)
 
-    @classmethod
-    def get_projects_to_archive_w(cls, archive_date, prod, ws_conn, projects_to_archive_q):
-        curr_prod_proj_to_archive = []
+    def get_projects_to_archive_w(self, archive_date, prod, ws_conn, projects_to_archive_q):
         curr_prod_projects = ws_conn.get_projects(product_token=prod['token'])
         logger.info(f"Handling product: {prod['name']} number of projects: {len(curr_prod_projects)}")
 
         for project in curr_prod_projects:
             project_time = datetime.strptime(project['lastUpdatedDate'], "%Y-%m-%d %H:%M:%S +%f")
-            if project_time < archive_date:
+            if project_time < archive_date and self.is_valid_project(project):
                 logger.debug(f"Project {project['name']} Token: {project['token']} Last update: {project['lastUpdatedDate']} will be archived")
-                curr_prod_proj_to_archive.append(project)
                 projects_to_archive_q.put(project)
-
-        logger.info(f"Found {len(curr_prod_proj_to_archive)} projects to archive on product: '{prod['name']}'")
 
 
 class FilterProjectsByLastCreatedCopies(FilterProjectsInt):
@@ -99,18 +116,21 @@ class FilterProjectsByLastCreatedCopies(FilterProjectsInt):
                          [(prod['token'], conf.ws_conn, projects_to_archive_q) for prod in self.products_to_clean])
         projects_to_archive = extract_from_q(projects_to_archive_q)
 
+        if not projects_to_archive:
+            logger.info("No projects to archive were found")
+
         return projects_to_archive
 
-    @classmethod
-    def get_projects_to_archive_w(cls, product_token: str, ws_conn: WS, projects_to_archive_q):
-        curr_projects = ws_conn.get_projects(product_token=product_token, sort_by=ws_constants.ScopeSorts.UPDATE_TIME)
-        if len(curr_projects) > conf.to_keep:
-            index = len(curr_projects) - conf.to_keep
-            last_projects = curr_projects[:index]
-            logging.debug(f"Total {len(curr_projects)}. Archiving first {index}")
+    def get_projects_to_archive_w(self, product_token: str, ws_conn: WS, projects_to_archive_q):
+        projects = ws_conn.get_projects(product_token=product_token, sort_by=ws_constants.ScopeSorts.UPDATE_TIME)
+        filtered_projects = [project for project in projects if self.is_valid_project(project)]
+        if len(filtered_projects) > conf.to_keep:
+            index = len(filtered_projects) - conf.to_keep
+            last_projects = filtered_projects[:index]
+            logging.debug(f"Total {len(filtered_projects)}. Archiving first {index}")
             projects_to_archive_q.put(last_projects)
         else:
-            logging.debug(f"Total {len(curr_projects)}. Archiving none")
+            logging.debug(f"Total {len(filtered_projects)}. Archiving none")
 
 
 def get_reports_to_archive(projects_to_archive: list) -> list:
@@ -138,7 +158,7 @@ class Config:
     ws_user_key: str
     excluded_product_tokens: list
     included_product_tokens: list
-    only_include_projects_with_comment: str  # scan_type = default
+    analyzed_project_tag: dict
     operation_mode: str                      # = retention  # time_based
     to_keep: int
     number_of_projects_to_retain: int
@@ -153,6 +173,14 @@ class Config:
 def parse_config():
     def get_conf_value(c_p_val, alt_val):
         return c_p_val if c_p_val else alt_val
+
+    def generate_analyzed_project_tag(analyzed_project_tag):
+        conf.analyzed_project_tag_t = tuple(analyzed_project_tag.replace(" ", "").split(":"))
+        if len(conf.analyzed_project_tag_t) != 2:
+            logging.error(f"Unable to parse Project tag: {conf.analyzed_project_tag}")
+            conf.analyzed_project_tag_t = None
+        else:
+            logging.info(f"Project tag is set. The tool will only analyze projects with tag: '{conf.analyzed_project_tag}'")
 
     global conf
 
@@ -180,11 +208,11 @@ def parse_config():
                     ws_user_key=get_conf_value(config['DEFAULT'].get("UserKey"), os.environ.get("WS_USER_KEY")),
                     excluded_product_tokens=config['DEFAULT'].get("ExcludedProductTokens"),
                     included_product_tokens=config['DEFAULT'].get("IncludedProductTokens"),
-                    only_include_projects_with_comment=config['DEFAULT'].getboolean("OnlyIncludeProjectsWithComments", False),
+                    analyzed_project_tag=config['DEFAULT'].get("AnalyzedProjectTag", None),
                     operation_mode=config['DEFAULT'].get("OperationMode", FilterProjectsByUpdateTime.__name__),
                     to_keep=config['DEFAULT'].getint("ToToKeep", 5),
                     number_of_projects_to_retain=config['DEFAULT'].getint("NumberOfProjectsToRetain", 1),
-                    dry_run=bool(os.environ.get("DRY_RUN", 0)),
+                    dry_run=config['DEFAULT'].getboolean("DryRun", False),
                     archive_dir=config['DEFAULT'].get('ReportsDir', os.getcwd()),
                     report_types=config['DEFAULT'].get('Reports'),
                     reports=None,
@@ -204,14 +232,17 @@ def parse_config():
         parser.add_argument('-o', '--out', help="Output directory", dest='archive_dir', default=os.getcwd())
         parser.add_argument('-e', '--excludedProductTokens', help="Excluded list", dest='excluded_product_tokens', default="")
         parser.add_argument('-i', '--IncludedProductTokens', help="Included list", dest='included_product_tokens', default="")
-        parser.add_argument('-c', '--OnlyIncludeProjectsWithComments', help="Output directory", dest='only_include_projects_with_comment', default=False)
+        parser.add_argument('-g', '--AnalyzedProjectTag', help="Allows only analyze whether to archive if project contains a specific K:V tag", dest='analyzed_project_tag')
         parser.add_argument('-r', '--ToKeep', help="Number of days to keep in FilterProjectsByUpdateTime or number of copies in FilterProjectsByLastCreatedCopies", dest='to_keep', type=int, default=5)
         parser.add_argument('-p', '--ProjectParallelismLevel', help="Project parallelism level", dest='project_parallelism_level', type=int, default=5)
-        parser.add_argument('-y', '--DryRun', help="Whether to run the tool without performing anything", dest='dry_run', default=False)
+        parser.add_argument('-y', '--DryRun', help="Whether to run the tool without performing anything", dest='dry_run', type=bool, default=False)
         conf = parser.parse_args()
 
-    conf.included_product_tokens = conf.included_product_tokens.replace(" ", "").split(",")
-    conf.excluded_product_tokens = conf.excluded_product_tokens.replace(" ", "").split(",")
+    if conf.analyzed_project_tag:
+        generate_analyzed_project_tag(conf.analyzed_project_tag)
+
+    conf.included_product_tokens = conf.included_product_tokens.replace(" ", "").split(",") if conf.included_product_tokens else []
+    conf.excluded_product_tokens = conf.excluded_product_tokens.replace(" ", "").split(",") if conf.excluded_product_tokens else []
     conf.reports = get_reports(conf.report_types)
     conf.ws_conn = WS(url=conf.ws_url,
                       user_key=conf.ws_user_key,
@@ -222,7 +253,7 @@ def parse_config():
 
 def get_reports(report_types: str) -> list:
     reports_d = {}
-    all_reports = WS.get_reports_meta_data()
+    all_reports = WS.get_reports_meta_data(scope=ws_constants.ScopeTypes.PROJECT)
 
     if report_types:
         report_types_l = report_types.replace(' ', '').split(",")
@@ -238,7 +269,7 @@ def get_reports(report_types: str) -> list:
 
 
 def replace_invalid_chars(directory: str) -> str:
-    for char in ws_sdk.ws_constants.INVALID_FS_CHARS:
+    for char in ws_constants.INVALID_FS_CHARS:
         directory = directory.replace(char, "_")
 
     return directory
@@ -247,7 +278,7 @@ def replace_invalid_chars(directory: str) -> str:
 def get_products_to_archive(included_product_tokens: list, excluded_product_tokens: list) -> list:
     if included_product_tokens:
         logger.debug(f"Product tokens to check for cleanup: {included_product_tokens}")
-        prods = [conf.ws_conn.get_scopes(scope_type=ws_constants.PRODUCT, token=prod_t).pop() for prod_t in included_product_tokens]
+        prods = [conf.ws_conn.get_scopes(scope_type=ws_constants.ScopeTypes.PRODUCT, token=prod_t).pop() for prod_t in included_product_tokens]
     else:
         logger.debug("Getting all products")
         prods = conf.ws_conn.get_products()
@@ -258,7 +289,6 @@ def get_products_to_archive(included_product_tokens: list, excluded_product_toke
         prods = [prod for prod in prods if prod['token'] not in excluded_product_tokens]
 
     logger.info(f"Product names for cleanup check: {[prod['name'] for prod in prods]}")
-
     logger.info(f"{all_prods_n} Products to handle out of {len(prods)}")
 
     return prods
@@ -282,7 +312,10 @@ def generate_reports_m(reports_desc_list: list) -> list:
 
 
 def generate_report_w(report_desc: dict, connector: WS, w_f_proj_tokens_q) -> None:
-    report_name = f"{report_desc['report'].name}.{report_desc['report'].bin_sfx}"
+    def get_suffix(entity):     # Handling case where list of 2 suffices returns
+        return entity if isinstance(entity, str) else entity[0]
+
+    report_name = f"{report_desc['report'].name}.{get_suffix(report_desc['report'].bin_sfx)}"
     report_full_path = os.path.join(report_desc['project_archive_dir'], report_name)
     if conf.dry_run:
         logger.info(f"[DRY_RUN] Generating report: '{report_full_path}' project: '{report_desc['name']}'")
