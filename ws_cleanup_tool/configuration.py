@@ -5,11 +5,10 @@ import sys
 from configparser import ConfigParser
 from dataclasses import dataclass
 
-from ws_sdk import WS
+from ws_sdk import WS, ws_constants
 
 from ws_cleanup_tool._version import __description__, __tool_name__, __version__
-from cleanup_tool import logger, get_reports
-from filter_strategies import FilterProjectsByUpdateTime, FilterProjectsInt
+from ws_cleanup_tool.filter_strategies import FilterProjectsByUpdateTime, FilterProjectsInt, FilterProjectsByLastCreatedCopies
 
 
 def parse_config():
@@ -55,11 +54,11 @@ def parse_config():
 
     if maybe_config_file:                             # Covers no conf file or only conf file
         if os.path.exists(conf_file):
-            logger.info(f"loading configuration from file: {conf_file}")
+            logging.info(f"loading configuration from file: {conf_file}")
             config = ConfigParser()
             config.optionxform = str
             if os.path.exists(conf_file):
-                logger.info(f"loading configuration from file: {conf_file}")
+                logging.info(f"loading configuration from file: {conf_file}")
                 config.read(conf_file)
 
                 conf = Config(
@@ -109,3 +108,20 @@ def parse_config():
                       token=conf.ws_token,
                       tool_details=(f"ps-{__tool_name__.replace('_', '-')}", __version__))
     return conf
+
+
+def get_reports(report_types: str) -> list:
+    reports_d = {}
+    all_reports = WS.get_reports_meta_data(scope=ws_constants.ScopeTypes.PROJECT)
+
+    if report_types:
+        report_types_l = report_types.replace(' ', '').split(",")
+        reports_to_gen_l = []
+        for r in all_reports:               # Converting list of report meta data tuples to dict
+            reports_d[r.name] = r
+
+        for r_t in report_types_l:
+            if r_t in reports_d.keys():
+                reports_to_gen_l.append(reports_d[r_t])
+
+    return reports_to_gen_l if report_types else all_reports

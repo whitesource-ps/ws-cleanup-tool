@@ -2,7 +2,7 @@ import os
 import sys
 from ws_sdk import ws_errors
 
-from  ws_cleanup_tool import configuration
+from ws_cleanup_tool import configuration
 from ws_cleanup_tool.filter_strategies import *
 from ws_cleanup_tool._version import __tool_name__
 
@@ -57,23 +57,6 @@ def get_reports_to_archive(projects_to_archive: list) -> list:
     logger.info(f"Found total {len(projects_to_archive)} projects to archive ({len(project_reports_desc_list)} reports will be produced)")
 
     return project_reports_desc_list
-
-
-def get_reports(report_types: str) -> list:
-    reports_d = {}
-    all_reports = WS.get_reports_meta_data(scope=ws_constants.ScopeTypes.PROJECT)
-
-    if report_types:
-        report_types_l = report_types.replace(' ', '').split(",")
-        reports_to_gen_l = []
-        for r in all_reports:               # Converting list of report meta data tuples to dict
-            reports_d[r.name] = r
-
-        for r_t in report_types_l:
-            if r_t in reports_d.keys():
-                reports_to_gen_l.append(reports_d[r_t])
-
-    return reports_to_gen_l if report_types else all_reports
 
 
 def get_products_to_archive(included_product_tokens: list, excluded_product_tokens: list) -> list:
