@@ -85,7 +85,7 @@ jobs:
         uses: papeloto/action-zip@v1
         with:
           files: requirements.txt LICENSE README.md CLA.md ${{ env.TOOL_DIR }}/
-          dest: ${{ TOOL_NAME }}-${{ VERSION }}.zip
+          dest: ${{ env.TOOL_NAME }}-${{ env.VERSION }}.zip
           recursive: true
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/v')
