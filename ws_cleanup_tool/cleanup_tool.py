@@ -1,7 +1,8 @@
 import os
 import sys
-from ws_sdk import ws_errors
+import types
 
+from ws_sdk import ws_errors
 from ws_cleanup_tool import configuration, filter_strategies
 from ws_cleanup_tool.filter_strategies import *
 from ws_cleanup_tool._version import __tool_name__
@@ -137,6 +138,12 @@ def worker_delete_project(conn, project, w_dry_run):
         conn.delete_scope(project['token'])
 
 
+def str_to_class(s):
+    if s in globals() and isinstance(globals()[s], type):
+        return globals()[s]
+    return None
+
+
 def main():
     global conf
     start_time = datetime.now()
@@ -149,7 +156,9 @@ def main():
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
     # projects_filter = FilterStrategy(globals()[conf.operation_mode](products_to_clean, conf))   # Creating and initiating the strategy class
     # projects_filter = FilterStrategy(eval(conf.operation_mode)(products_to_clean, conf))   # Creating and initiating the strategy class
-    filter_class = getattr(filter_strategies, conf.operation_mode)
+    # filter_class = getattr(filter_strategies, conf.operation_mode)
+    filter_class = str_to_class(conf.operation_mode)
+
     projects_filter = FilterStrategy(filter_class(products_to_clean, conf))
     projects_to_archive = projects_filter.execute()
     reports_to_archive = get_reports_to_archive(projects_to_archive)
