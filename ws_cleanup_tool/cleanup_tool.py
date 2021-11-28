@@ -3,8 +3,8 @@ import sys
 from importlib import import_module
 
 from ws_sdk import ws_errors
-from ws_cleanup_tool import configuration
-from ws_cleanup_tool.filter_strategies import *
+from config import configuration
+from filters.filter_strategies import *
 from ws_cleanup_tool._version import __tool_name__
 
 skip_report_generation = bool(os.environ.get("SKIP_REPORT_GENERATION", 0))
@@ -154,8 +154,14 @@ def main():
 
     logger.info(f"Starting project cleanup in {conf.operation_mode} archive mode. Generating {len(conf.reports)} report types with {conf.project_parallelism_level} threads")
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
-    filter_obj = import_module('filter_strategies').__dict__[conf.operation_mode]
-    projects_filter = FilterStrategy(filter_obj(products_to_clean, conf))
+    # projects_filter = FilterStrategy(globals()[conf.operation_mode](products_to_clean, conf))   # Creating and initiating the strategy class
+    # projects_filter = FilterStrategy(eval(conf.operation_mode)(products_to_clean, conf))   # Creating and initiating the strategy class
+    # filter_class = getattr(filter_strategies, conf.operation_mode)
+    # module = importlib.import_module('filter_strategies')
+    # filter_obj = import_module('filter_strategies').__dict__[conf.operation_mode]
+
+    filter_class = str_to_class(conf.operation_mode)
+    projects_filter = FilterStrategy(filter_class(products_to_clean, conf))
     projects_to_archive = projects_filter.execute()
     reports_to_archive = get_reports_to_archive(projects_to_archive)
     failed_project_tokens = []
