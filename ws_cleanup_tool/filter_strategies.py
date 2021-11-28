@@ -7,8 +7,6 @@ from multiprocessing.pool import ThreadPool
 
 from ws_sdk import WS, ws_constants
 
-from cleanup_tool import conf
-
 
 class FilterProjectsInt(ABC):
     def __init__(self, products_to_clean, config):
