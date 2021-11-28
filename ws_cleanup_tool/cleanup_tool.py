@@ -3,8 +3,8 @@ import sys
 from importlib import import_module
 
 from ws_sdk import ws_errors
-from config import configuration
-from filters.filter_strategies import *
+from ws_cleanup_tool.config import configuration
+from ws_cleanup_tool.filters.filter_strategies import *
 from ws_cleanup_tool._version import __tool_name__
 
 skip_report_generation = bool(os.environ.get("SKIP_REPORT_GENERATION", 0))
