@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from ws_sdk import WS, ws_constants
 
 from ws_cleanup_tool._version import __description__, __tool_name__, __version__
-from filters.filter_strategies import FilterProjectsByUpdateTime, FilterProjectsInt
+from ws_cleanup_tool.filters.filter_strategies import FilterProjectsByUpdateTime, FilterProjectsInt
 
 
 def parse_config():
