@@ -1,5 +1,4 @@
 import logging
-import os
 from abc import ABC, abstractmethod
 from datetime import timedelta, datetime
 from multiprocessing import Manager
@@ -97,27 +96,3 @@ def extract_from_q(projects_to_archive_q):
         projects_to_archive.append(item) if isinstance(item, dict) else projects_to_archive.extend(item)
 
     return projects_to_archive
-
-
-class FilterStrategy:
-    def __init__(self, filter_classname, products_to_clean, config) -> None:
-        filter_class = globals()[filter_classname]
-        self.config = config
-
-        self._filter_projects = filter_class(products_to_clean, config)
-
-    def execute(self):
-        def replace_invalid_chars(directory: str) -> str:
-            for char in ws_constants.INVALID_FS_CHARS:
-                directory = directory.replace(char, "_")
-
-            return directory
-
-        projects = self._filter_projects.get_projects_to_archive()
-
-        for project in projects:
-            product_name = replace_invalid_chars(project['productName'])
-            project_name = replace_invalid_chars(project['name'])
-            project['project_archive_dir'] = os.path.join(os.path.join(self.config.archive_dir, product_name), project_name)
-
-        return projects

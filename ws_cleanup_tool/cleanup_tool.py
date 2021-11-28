@@ -1,4 +1,6 @@
+import os
 import sys
+from importlib import import_module
 
 from ws_sdk import ws_errors
 from ws_cleanup_tool import configuration
@@ -17,6 +19,27 @@ logging.getLogger('urllib3').setLevel(logging.WARNING)
 logging.getLogger('root').setLevel(logging.INFO)
 
 conf = None
+
+
+class FilterStrategy:
+    def __init__(self, filter_projects) -> None:
+        self._filter_projects = filter_projects
+
+    def execute(self):
+        def replace_invalid_chars(directory: str) -> str:
+            for char in ws_constants.INVALID_FS_CHARS:
+                directory = directory.replace(char, "_")
+
+            return directory
+
+        projects = self._filter_projects.get_projects_to_archive()
+
+        for project in projects:
+            product_name = replace_invalid_chars(project['productName'])
+            project_name = replace_invalid_chars(project['name'])
+            project['project_archive_dir'] = os.path.join(os.path.join(conf.archive_dir, product_name), project_name)
+
+        return projects
 
 
 def get_reports_to_archive(projects_to_archive: list) -> list:
@@ -131,12 +154,8 @@ def main():
 
     logger.info(f"Starting project cleanup in {conf.operation_mode} archive mode. Generating {len(conf.reports)} report types with {conf.project_parallelism_level} threads")
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
-    # projects_filter = FilterStrategy(globals()[conf.operation_mode](products_to_clean, conf))   # Creating and initiating the strategy class
-    # projects_filter = FilterStrategy(eval(conf.operation_mode)(products_to_clean, conf))   # Creating and initiating the strategy class
-    # filter_class = getattr(filter_strategies, conf.operation_mode)
-    # filter_class = str_to_class(conf.operation_mode)
-
-    projects_filter = FilterStrategy(conf.operation_mode, products_to_clean, conf)
+    filter_obj = import_module('filter_strategies').__dict__[conf.operation_mode]
+    projects_filter = FilterStrategy(filter_obj(products_to_clean, conf))
     projects_to_archive = projects_filter.execute()
     reports_to_archive = get_reports_to_archive(projects_to_archive)
     failed_project_tokens = []
