@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from ws_sdk import WS, ws_constants
 
 from ws_cleanup_tool._version import __description__, __tool_name__, __version__
-from ws_cleanup_tool.filter_strategies import FilterProjectsByUpdateTime, FilterProjectsInt, FilterProjectsByLastCreatedCopies
+from filters.filter_strategies import FilterProjectsByUpdateTime, FilterProjectsInt
 
 
 def parse_config():
@@ -46,7 +46,7 @@ def parse_config():
     if len(sys.argv) < 3:
         maybe_config_file = True
     if len(sys.argv) == 1:
-        conf_file = "params.config"
+        conf_file = "../params.config"
     elif not sys.argv[1].startswith('-'):
         conf_file = sys.argv[1]
     else:
