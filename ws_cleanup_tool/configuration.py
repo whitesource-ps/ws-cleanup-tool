@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from ws_sdk import WS
 
-from _version import __description__, __tool_name__, __version__
+from ws_cleanup_tool._version import __description__, __tool_name__, __version__
 from cleanup_tool import logger, get_reports
 from filter_strategies import FilterProjectsByUpdateTime, FilterProjectsInt
 
