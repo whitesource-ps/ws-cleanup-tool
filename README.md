@@ -15,7 +15,7 @@
 * By default, the tool generates all possible project level reports. It is possible to state which reports to generate (-t / Reports/).
 * Full flag list is available below
 * The tool can be configured in 2 modes:
-  * By configuring _params.conf_ on the executed dir or passing a path to file in the same format.
+  * By configuring _params.config_ on the executed dir or passing a path to file in the same format.
   * By setting command switched as specified in the usage below. 
 ## Supported Operating Systems
 - **Linux (Bash):**	CentOS, Debian, Ubuntu, RedHat
@@ -29,14 +29,14 @@
 * It is recommended to use a service user.
 
 ## Installation and Execution from PyPi (recommended):
-1. Install by executing: `pip install ws-sdk`
-2. Configure the appropriate flags either in `params.conf` or by using the command switches described below.
-3. Execute the tool (`cleanup_tool ...`). 
+1. Install by executing: `pip install ws-cleanup-tool`
+2. Configure the appropriate flags either by using the command switches described below or in `params.config`.
+3. Execute the tool (`ws_cleanup_tool ...`). 
 ## Installation and Execution from GitHub:
-1. Download and unzip **ws-projects-cleanup.zip** 
+1. Download and unzip **ws-cleanup-tool.zip** 
 1. Install requirements: `pip install -r requirements.txt`
 1. Edit the **param.config** file with the appropriate parameters
-1. Execute: `python projects_cleanup.py <CONFIG_FILE>` 
+1. Execute: `python ws_projects_cleanup.py <CONFIG_FILE>` 
   
 ## Parameters Description (_params.config_)
 * IncludedProductTokens - list of included products
@@ -54,7 +54,7 @@
  
 ## Full Usage flags:
 ```shell
-usage: cleanup_tool [-h] -u WS_USER_KEY -k WS_TOKEN [-a WS_URL] [-t REPORT_TYPES] [-m {FilterProjectsByUpdateTime,FilterProjectsByLastCreatedCopies}] [-o ARCHIVE_DIR] [-e EXCLUDED_PRODUCT_TOKENS] [-i INCLUDED_PRODUCT_TOKENS]
+usage: ws_cleanup_tool [-h] -u WS_USER_KEY -k WS_TOKEN [-a WS_URL] [-t REPORT_TYPES] [-m {FilterProjectsByUpdateTime,FilterProjectsByLastCreatedCopies}] [-o ARCHIVE_DIR] [-e EXCLUDED_PRODUCT_TOKENS] [-i INCLUDED_PRODUCT_TOKENS]
                     [-g ANALYZED_PROJECT_TAG] [-r TO_KEEP] [-p PROJECT_PARALLELISM_LEVEL] [-y DRY_RUN]
 
 WS Cleanup Tool
@@ -89,13 +89,13 @@ optional arguments:
 ## Examples:
 ```shell
 # Performing dry run to check which project will get deleted if command will be executed this way: 
-cleanup_tool -r 30 -m FilterProjectsByUpdateTime -u <USER_KEY> -t <ORG_TOKEN> -y true 
+ws_cleanup_tool -r 30 -m FilterProjectsByUpdateTime -u <USER_KEY> -t <ORG_TOKEN> -y true 
 # keep last 60 days on each product omitting product token x from analyze:
-cleanup_tool -r 60 -m FilterProjectsByUpdateTime -u <USER_KEY> -t <ORG_TOKEN> -e x
+ws_cleanup_tool -r 60 -m FilterProjectsByUpdateTime -u <USER_KEY> -t <ORG_TOKEN> -e x
 # Keep 2 of the newest projects in each product token x and y:
-cleanup_tool -r 2 -m FilterProjectsByLastCreatedCopies -u <USER_KEY> -t <ORG_TOKEN> -i x,y
+ws_cleanup_tool -r 2 -m FilterProjectsByLastCreatedCopies -u <USER_KEY> -t <ORG_TOKEN> -i x,y
 # Only analyze project that has k1:v1 comment and keep the newest project in each product token:
-cleanup_tool -r 1 -m FilterProjectsByLastCreatedCopies -u <USER_KEY> -t <ORG_TOKEN>
+ws_cleanup_tool -r 1 -m FilterProjectsByLastCreatedCopies -u <USER_KEY> -t <ORG_TOKEN>
 ```
 
 **note:** The optimal number is derived from the size of the environment, WhiteSource scope size, (memory and CPU) allocated for the server and runtime time constraints.    
