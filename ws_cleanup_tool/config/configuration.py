@@ -7,8 +7,8 @@ from dataclasses import dataclass
 
 from ws_sdk import WS, ws_constants
 
+from ws_cleanup_tool import cleanup_tool
 from ws_cleanup_tool._version import __description__, __tool_name__, __version__
-from ws_cleanup_tool.filters.filter_strategies import FilterProjectsByUpdateTime, FilterProjectsInt
 
 
 def parse_config():
@@ -68,7 +68,7 @@ def parse_config():
                     excluded_product_tokens=config['DEFAULT'].get("ExcludedProductTokens"),
                     included_product_tokens=config['DEFAULT'].get("IncludedProductTokens"),
                     analyzed_project_tag=config['DEFAULT'].get("AnalyzedProjectTag", None),
-                    operation_mode=config['DEFAULT'].get("OperationMode", FilterProjectsByUpdateTime.__name__),
+                    operation_mode=config['DEFAULT'].get("OperationMode", cleanup_tool.FilterProjectsByUpdateTime.__name__),
                     to_keep=config['DEFAULT'].getint("ToToKeep", 5),
                     number_of_projects_to_retain=config['DEFAULT'].getint("NumberOfProjectsToRetain", 1),
                     dry_run=config['DEFAULT'].getboolean("DryRun", False),
@@ -87,7 +87,7 @@ def parse_config():
         parser.add_argument('-a', '--wsUrl', help="WS URL", dest='ws_url')
         parser.add_argument('-t', '--ReportTypes', help="Report Types to generate (comma seperated list)", dest='report_types')
         parser.add_argument('-m', '--operation_mode', help="Archive operation method", dest='operation_mode', default="FilterProjectsByUpdateTime",
-                            choices=[s.__name__ for s in FilterProjectsInt.__subclasses__()])
+                            choices=[s.__name__ for s in cleanup_tool.FilterProjectsInt.__subclasses__()])
         parser.add_argument('-o', '--out', help="Output directory", dest='archive_dir', default=os.getcwd())
         parser.add_argument('-e', '--excludedProductTokens', help="Excluded list", dest='excluded_product_tokens', default="")
         parser.add_argument('-i', '--IncludedProductTokens', help="Included list", dest='included_product_tokens', default="")
