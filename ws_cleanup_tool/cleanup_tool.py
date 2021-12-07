@@ -3,13 +3,13 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from datetime import timedelta, datetime
-from importlib import import_module
 from multiprocessing import Manager
 from multiprocessing.pool import ThreadPool
 
 from ws_sdk import ws_errors, WS, ws_constants
-from ws_cleanup_tool.config import configuration
+
 from ws_cleanup_tool._version import __tool_name__
+from ws_cleanup_tool.config import configuration
 
 skip_report_generation = bool(os.environ.get("SKIP_REPORT_GENERATION", 0))
 skip_project_deletion = bool(os.environ.get("SKIP_PROJECT_DELETION", 0))
@@ -243,7 +243,7 @@ def main():
 
     logger.info(f"Starting project cleanup in {conf.operation_mode} archive mode. Generating {len(conf.reports)} report types with {conf.project_parallelism_level} threads")
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
-    filter_class = FilterStrategy(eval(conf.operation_mode)(products_to_clean, conf))   # Creating and initiating the strategy class
+    filter_class = FilterStrategy(eval(conf.operation_mode)(products_to_clean, conf))
     projects_to_archive = filter_class.execute()
     reports_to_archive = get_reports_to_archive(projects_to_archive)
     failed_project_tokens = []
