@@ -68,11 +68,11 @@ class FilterProjectsInt(ABC):
 
         ret = True
         if not self.should_filter_by_tag:
-            logging.debug(f"Project {project['name']} is valid")
+            logger.debug(f"Project {project['name']} is valid")
         elif self.should_filter_by_tag and is_tag_exist(project):
-            logging.debug(f"Project {project['name']} contains appropriate key:value pair: {self.conf.analyzed_project_tag_t}")
+            logger.debug(f"Project {project['name']} contains appropriate key:value pair: {self.conf.analyzed_project_tag_t}")
         else:
-            logging.debug(f"Project {project['name']} does not contain appropriate key:value pair: {self.conf.analyzed_project_tag_t}")
+            logger.debug(f"Project {project['name']} does not contain appropriate key:value pair: {self.conf.analyzed_project_tag_t}")
             ret = False
 
         return ret
@@ -82,7 +82,7 @@ class FilterProjectsByUpdateTime(FilterProjectsInt):
     def get_projects_to_archive(self) -> list:
         days_to_keep = timedelta(days=self.conf.to_keep)
         archive_date = datetime.utcnow() - days_to_keep
-        logging.info(f"Keeping {days_to_keep.days} days. Archiving projects older than {archive_date}")
+        logger.info(f"Keeping {days_to_keep.days} days. Archiving projects older than {archive_date}")
 
         manager = Manager()
         projects_to_archive_q = manager.Queue()
@@ -93,18 +93,18 @@ class FilterProjectsByUpdateTime(FilterProjectsInt):
 
     def get_projects_to_archive_w(self, archive_date, prod, ws_conn, projects_to_archive_q):
         curr_prod_projects = ws_conn.get_projects(product_token=prod['token'])
-        logging.info(f"Handling product: {prod['name']} number of projects: {len(curr_prod_projects)}")
+        logger.info(f"Handling product: {prod['name']} number of projects: {len(curr_prod_projects)}")
 
         for project in curr_prod_projects:
             project_time = datetime.strptime(project['lastUpdatedDate'], "%Y-%m-%d %H:%M:%S +%f")
             if project_time < archive_date and self.is_valid_project(project):
-                logging.debug(f"Project {project['name']} Token: {project['token']} Last update: {project['lastUpdatedDate']} will be archived")
+                logger.debug(f"Project {project['name']} Token: {project['token']} Last update: {project['lastUpdatedDate']} will be archived")
                 projects_to_archive_q.put(project)
 
 
 class FilterProjectsByLastCreatedCopies(FilterProjectsInt):
     def get_projects_to_archive(self) -> list:
-        logging.info(f"Keeping last recent {self.conf.to_keep} projects. Archiving the rest")
+        logger.info(f"Keeping last recent {self.conf.to_keep} projects. Archiving the rest")
         manager = Manager()
         projects_to_archive_q = manager.Queue()
         with ThreadPool(processes=self.conf.project_parallelism_level) as pool:
@@ -113,7 +113,7 @@ class FilterProjectsByLastCreatedCopies(FilterProjectsInt):
         projects_to_archive = extract_from_q(projects_to_archive_q)
 
         if not projects_to_archive:
-            logging.info("No projects to archive were found")
+            logger.info("No projects to archive were found")
 
         return projects_to_archive
 
@@ -123,10 +123,10 @@ class FilterProjectsByLastCreatedCopies(FilterProjectsInt):
         if len(filtered_projects) > self.conf.to_keep:
             index = len(filtered_projects) - self.conf.to_keep
             last_projects = filtered_projects[:index]
-            logging.debug(f"Total {len(filtered_projects)}. Archiving first {index}")
+            logger.debug(f"Total {len(filtered_projects)}. Archiving first {index}")
             projects_to_archive_q.put(last_projects)
         else:
-            logging.debug(f"Total {len(filtered_projects)}. Archiving none")
+            logger.debug(f"Total {len(filtered_projects)}. Archiving none")
 
 
 def extract_from_q(projects_to_archive_q):
@@ -213,7 +213,7 @@ def generate_report_w(report_desc: dict, connector: WS, w_f_proj_tokens_q) -> No
                 logger.exception(f"Error producing report: '{report_desc['report_type']}' on project {report_desc['name']}. Project will not be deleted.")
                 w_f_proj_tokens_q.put(report_desc['token'])
     else:
-        logging.debug(f"Skipping report: {report_desc['report'].name} is invalid")
+        logger.debug(f"Skipping report: {report_desc['report'].name} is invalid")
 
 
 def delete_projects(projects_to_archive: list, failed_project_tokens: list) -> None:
@@ -262,10 +262,10 @@ def parse_config():
     def generate_analyzed_project_tag(analyzed_project_tag):
         conf.analyzed_project_tag_t = tuple(analyzed_project_tag.replace(" ", "").split(":"))
         if len(conf.analyzed_project_tag_t) != 2:
-            logging.error(f"Unable to parse Project tag: {conf.analyzed_project_tag}")
+            logger.error(f"Unable to parse Project tag: {conf.analyzed_project_tag}")
             conf.analyzed_project_tag_t = None
         else:
-            logging.info(f"Project tag is set. The tool will only analyze projects with tag: '{conf.analyzed_project_tag}'")
+            logger.info(f"Project tag is set. The tool will only analyze projects with tag: '{conf.analyzed_project_tag}'")
 
     global conf
 
@@ -280,11 +280,11 @@ def parse_config():
 
     if maybe_config_file:                             # Covers no conf file or only conf file
         if os.path.exists(conf_file):
-            logging.info(f"loading configuration from file: {conf_file}")
+            logger.info(f"loading configuration from file: {conf_file}")
             config = ConfigParser()
             config.optionxform = str
             if os.path.exists(conf_file):
-                logging.info(f"loading configuration from file: {conf_file}")
+                logger.info(f"loading configuration from file: {conf_file}")
                 config.read(conf_file)
 
                 conf = Config(
@@ -301,7 +301,7 @@ def parse_config():
                     report_types=config['DEFAULT'].get('Reports'),reports=None,
                     project_parallelism_level=config['DEFAULT'].getint('ProjectParallelismLevel', 5), ws_conn=None)
         else:
-            logging.error(f"No configuration file found at: {conf_file}")
+            logger.error(f"No configuration file found at: {conf_file}")
             raise FileNotFoundError
     else:
         parser = argparse.ArgumentParser(description=__description__)
@@ -360,7 +360,6 @@ def main():
 
     logger.info(f"Starting project cleanup in {conf.operation_mode} archive mode. Generating {len(conf.reports)} report types with {conf.project_parallelism_level} threads")
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
-    logging.info(f"operation_mode: {conf.operation_mode}")
     filter_class = FilterStrategy(globals()[conf.operation_mode](products_to_clean, conf))
     projects_to_archive = filter_class.execute()
     reports_to_archive = get_reports_to_archive(projects_to_archive)
