@@ -309,7 +309,7 @@ def parse_config():
         parser.add_argument('-k', '--token', help="WS Organization Key", dest='ws_token', required=True)
         parser.add_argument('-a', '--wsUrl', help="WS URL", dest='ws_url')
         parser.add_argument('-t', '--ReportTypes', help="Report Types to generate (comma seperated list)", dest='report_types')
-        parser.add_argument('-m', '--mode', help="Archive operation method", dest='mode', default="FilterProjectsByUpdateTime",
+        parser.add_argument('-m', '--mode', help="Archive operation method", dest='mode',
                             choices=[s.__name__ for s in FilterProjectsInt.__subclasses__()])
         parser.add_argument('-o', '--out', help="Output directory", dest='archive_dir', default=os.getcwd())
         parser.add_argument('-e', '--excludedProductTokens', help="Excluded list", dest='excluded_product_tokens', default="")
@@ -319,7 +319,8 @@ def parse_config():
         parser.add_argument('-p', '--ProjectParallelismLevel', help="Project parallelism level", dest='project_parallelism_level', type=int, default=5)
         parser.add_argument('-y', '--DryRun', help="Whether to run the tool without performing anything", dest='dry_run', type=bool, default=False)
         conf = parser.parse_args()
-        logging.info(f"Mode: {conf.mode}")
+
+        logger.info(f"Filter Options: {FilterProjectsInt.__subclasses__()}")        # DEBUG
 
     if conf.analyzed_project_tag:
         generate_analyzed_project_tag(conf.analyzed_project_tag)
