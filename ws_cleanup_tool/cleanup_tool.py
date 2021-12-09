@@ -12,8 +12,6 @@ from multiprocessing.pool import ThreadPool
 from ws_sdk import ws_errors, WS, ws_constants
 
 from _version import __description__, __tool_name__, __version__
-from ws_cleanup_tool._version import __tool_name__
-from ws_cleanup_tool.config import configuration
 
 skip_report_generation = bool(os.environ.get("SKIP_REPORT_GENERATION", 0))
 skip_project_deletion = bool(os.environ.get("SKIP_PROJECT_DELETION", 0))
@@ -315,7 +313,7 @@ def parse_config():
         parser.add_argument('-a', '--wsUrl', help="WS URL", dest='ws_url')
         parser.add_argument('-t', '--ReportTypes', help="Report Types to generate (comma seperated list)", dest='report_types')
         parser.add_argument('-m', '--operation_mode', help="Archive operation method", dest='operation_mode', default="FilterProjectsByUpdateTime",
-                            choices=[s.__name__ for s in cleanup_tool.FilterProjectsInt.__subclasses__()])
+                            choices=[s.__name__ for s in FilterProjectsInt.__subclasses__()])
         parser.add_argument('-o', '--out', help="Output directory", dest='archive_dir', default=os.getcwd())
         parser.add_argument('-e', '--excludedProductTokens', help="Excluded list", dest='excluded_product_tokens', default="")
         parser.add_argument('-i', '--IncludedProductTokens', help="Included list", dest='included_product_tokens', default="")
