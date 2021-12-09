@@ -246,7 +246,7 @@ def parse_config():
         excluded_product_tokens: list
         included_product_tokens: list
         analyzed_project_tag: dict
-        operation_mode: str  # = retention  # time_based
+        mode: str  # = retention  # time_based
         to_keep: int
         number_of_projects_to_retain: int
         dry_run: bool
@@ -294,7 +294,7 @@ def parse_config():
                     excluded_product_tokens=config['DEFAULT'].get("ExcludedProductTokens"),
                     included_product_tokens=config['DEFAULT'].get("IncludedProductTokens"),
                     analyzed_project_tag=config['DEFAULT'].get("AnalyzedProjectTag", None),
-                    operation_mode=config['DEFAULT'].get("OperationMode", FilterProjectsByUpdateTime.__name__), to_keep=config['DEFAULT'].getint("ToToKeep", 5),
+                    mode=config['DEFAULT'].get("OperationMode", FilterProjectsByUpdateTime.__name__), to_keep=config['DEFAULT'].getint("ToToKeep", 5),
                     number_of_projects_to_retain=config['DEFAULT'].getint("NumberOfProjectsToRetain", 1),
                     dry_run=config['DEFAULT'].getboolean("DryRun", False),
                     archive_dir=config['DEFAULT'].get('ReportsDir', os.getcwd()),
@@ -309,7 +309,7 @@ def parse_config():
         parser.add_argument('-k', '--token', help="WS Organization Key", dest='ws_token', required=True)
         parser.add_argument('-a', '--wsUrl', help="WS URL", dest='ws_url')
         parser.add_argument('-t', '--ReportTypes', help="Report Types to generate (comma seperated list)", dest='report_types')
-        parser.add_argument('-m', '--operation_mode', help="Archive operation method", dest='operation_mode', default="FilterProjectsByUpdateTime",
+        parser.add_argument('-m', '--mode', help="Archive operation method", dest='mode', default="FilterProjectsByUpdateTime",
                             choices=[s.__name__ for s in FilterProjectsInt.__subclasses__()])
         parser.add_argument('-o', '--out', help="Output directory", dest='archive_dir', default=os.getcwd())
         parser.add_argument('-e', '--excludedProductTokens', help="Excluded list", dest='excluded_product_tokens', default="")
@@ -319,6 +319,7 @@ def parse_config():
         parser.add_argument('-p', '--ProjectParallelismLevel', help="Project parallelism level", dest='project_parallelism_level', type=int, default=5)
         parser.add_argument('-y', '--DryRun', help="Whether to run the tool without performing anything", dest='dry_run', type=bool, default=False)
         conf = parser.parse_args()
+        logging.info(f"Mode: {conf.mode}")
 
     if conf.analyzed_project_tag:
         generate_analyzed_project_tag(conf.analyzed_project_tag)
@@ -358,9 +359,9 @@ def main():
     except FileNotFoundError:
         exit(-1)
 
-    logger.info(f"Starting project cleanup in {conf.operation_mode} archive mode. Generating {len(conf.reports)} report types with {conf.project_parallelism_level} threads")
+    logger.info(f"Starting project cleanup in '{conf.mode}' archive mode. Generating {len(conf.reports)} report types with {conf.project_parallelism_level} threads")
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
-    filter_class = FilterStrategy(globals()[conf.operation_mode](products_to_clean, conf))
+    filter_class = FilterStrategy(globals()[conf.mode](products_to_clean, conf))
     projects_to_archive = filter_class.execute()
     reports_to_archive = get_reports_to_archive(projects_to_archive)
     failed_project_tokens = []
