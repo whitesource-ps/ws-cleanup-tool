@@ -63,7 +63,7 @@ jobs:
           SKIP_PROJECT_DELETION: 1
           DRY_RUN: 1
       - name: Full test Time-Based
-        run: $TOOL_NAME -r 90 -u ${{ secrets.WS_USER_KEY }} -k ${{ secrets.WS_ORG_TOKEN }} -y true -o /tmp
+        run: $TOOL_NAME -r 90 -m FilterProjectsByUpdateTime -u ${{ secrets.WS_USER_KEY }} -k ${{ secrets.WS_ORG_TOKEN }} -y true -o /tmp
       - name: Full test Copy-Based
         run: $TOOL_NAME -r 1 -m FilterProjectsByLastCreatedCopies -u ${{ secrets.WS_USER_KEY }} -k ${{ secrets.WS_ORG_TOKEN }} -y true -o /tmp
       - name: Publish to Test PyPI

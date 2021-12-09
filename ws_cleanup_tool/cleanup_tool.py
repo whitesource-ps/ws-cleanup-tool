@@ -20,7 +20,6 @@ logging.basicConfig(level=logging.DEBUG if bool(os.environ.get("DEBUG", "false")
                     datefmt='%y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__tool_name__)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
-# logging.getLogger('root').setLevel(logging.INFO)
 
 conf = None
 
@@ -246,8 +245,6 @@ def main():
 
     logger.info(f"Starting project cleanup in {conf.operation_mode} archive mode. Generating {len(conf.reports)} report types with {conf.project_parallelism_level} threads")
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
-    logging.info(f"operation_mode: {conf.operation_mode}")
-    logging.info(f"Globals:\n {globals()}")
     filter_class = FilterStrategy(globals()[conf.operation_mode](products_to_clean, conf))
     projects_to_archive = filter_class.execute()
     reports_to_archive = get_reports_to_archive(projects_to_archive)
