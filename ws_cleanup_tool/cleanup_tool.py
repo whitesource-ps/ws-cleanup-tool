@@ -11,7 +11,7 @@ from multiprocessing.pool import ThreadPool
 
 from ws_sdk import ws_errors, WS, ws_constants
 
-from _version import __description__, __tool_name__, __version__
+from ws_cleanup_tool._version import __description__, __tool_name__, __version__
 
 skip_report_generation = bool(os.environ.get("SKIP_REPORT_GENERATION", 0))
 skip_project_deletion = bool(os.environ.get("SKIP_PROJECT_DELETION", 0))
@@ -294,15 +294,12 @@ def parse_config():
                     excluded_product_tokens=config['DEFAULT'].get("ExcludedProductTokens"),
                     included_product_tokens=config['DEFAULT'].get("IncludedProductTokens"),
                     analyzed_project_tag=config['DEFAULT'].get("AnalyzedProjectTag", None),
-                    operation_mode=config['DEFAULT'].get("OperationMode", FilterProjectsByUpdateTime.__name__),
-                    to_keep=config['DEFAULT'].getint("ToToKeep", 5),
+                    operation_mode=config['DEFAULT'].get("OperationMode", FilterProjectsByUpdateTime.__name__), to_keep=config['DEFAULT'].getint("ToToKeep", 5),
                     number_of_projects_to_retain=config['DEFAULT'].getint("NumberOfProjectsToRetain", 1),
                     dry_run=config['DEFAULT'].getboolean("DryRun", False),
                     archive_dir=config['DEFAULT'].get('ReportsDir', os.getcwd()),
-                    report_types=config['DEFAULT'].get('Reports'),
-                    reports=None,
-                    project_parallelism_level=config['DEFAULT'].getint('ProjectParallelismLevel', 5),
-                    ws_conn=None)
+                    report_types=config['DEFAULT'].get('Reports'),reports=None,
+                    project_parallelism_level=config['DEFAULT'].getint('ProjectParallelismLevel', 5), ws_conn=None)
         else:
             logging.error(f"No configuration file found at: {conf_file}")
             raise FileNotFoundError
