@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.DEBUG if bool(os.environ.get("DEBUG", "false")
                     datefmt='%y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__tool_name__)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
-logging.getLogger('root').setLevel(logging.INFO)
+# logging.getLogger('root').setLevel(logging.INFO)
 
 conf = None
 
@@ -192,24 +192,27 @@ def generate_reports_m(reports_desc_list: list) -> list:
 
 
 def generate_report_w(report_desc: dict, connector: WS, w_f_proj_tokens_q) -> None:
-    def get_suffix(entity):     # Handling case where list of 2 suffices returns
+    def get_suffix(entity):     # Handling case where more than 1 suffix
         return entity if isinstance(entity, str) else entity[0]
 
-    report_name = f"{report_desc['report'].name}.{get_suffix(report_desc['report'].bin_sfx)}"
-    report_full_path = os.path.join(report_desc['project_archive_dir'], report_name)
-    if conf.dry_run:
-        logger.info(f"[DRY_RUN] Generating report: '{report_full_path}' project: '{report_desc['name']}'")
+    if report_desc['report'].bin_sfx:
+        report_name = f"{report_desc['report'].name}.{get_suffix(report_desc['report'].bin_sfx)}"
+        report_full_path = os.path.join(report_desc['project_archive_dir'], report_name)
+        if conf.dry_run:
+            logger.info(f"[DRY_RUN] Generating report: '{report_full_path}' project: '{report_desc['name']}'")
+        else:
+            logger.debug(f"Generating report: '{report_full_path}' on project: '{report_desc['name']}'")
+            try:
+                report = report_desc['report'].func(connector, token=report_desc['token'], report=True)
+                f = open(report_full_path, 'bw')
+                if not report:
+                    report = bytes()
+                f.write(report)
+            except ws_errors.WsSdkServerError or OSError:
+                logger.exception(f"Error producing report: '{report_desc['report_type']}' on project {report_desc['name']}. Project will not be deleted.")
+                w_f_proj_tokens_q.put(report_desc['token'])
     else:
-        logger.debug(f"Generating report: '{report_full_path}' on project: '{report_desc['name']}'")
-        try:
-            report = report_desc['report'].func(connector, token=report_desc['token'], report=True)
-            f = open(report_full_path, 'bw')
-            if not report:
-                report = bytes()
-            f.write(report)
-        except ws_errors.WsSdkServerError or OSError:
-            logger.exception(f"Error producing report: '{report_desc['report_type']}' on project {report_desc['name']}. Project will not be deleted.")
-            w_f_proj_tokens_q.put(report_desc['token'])
+        logging.debug(f"Skipping report: {report_desc['report'].name} is invalid")
 
 
 def delete_projects(projects_to_archive: list, failed_project_tokens: list) -> None:
@@ -243,7 +246,6 @@ def main():
 
     logger.info(f"Starting project cleanup in {conf.operation_mode} archive mode. Generating {len(conf.reports)} report types with {conf.project_parallelism_level} threads")
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
-    # filter_class = FilterStrategy(eval(conf.operation_mode)(products_to_clean, conf))
     filter_class = FilterStrategy(globals()[conf.operation_mode](products_to_clean, conf))
     projects_to_archive = filter_class.execute()
     reports_to_archive = get_reports_to_archive(projects_to_archive)
