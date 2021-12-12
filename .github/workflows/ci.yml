@@ -56,7 +56,7 @@ jobs:
       - name: Install Wheel package
         run: ls -1 dist/*.whl | xargs pip install
       - name: Full Test time-based parameters file
-        run: $TOOL_NAME ./$TOOL_DIR/params_ci_time_based.config
+        run: $TOOL_NAME ./$TOOL_DIR/conf/params_ci_time_based.config
         env:
           WS_USER_KEY: ${{ secrets.WS_USER_KEY }}
           WS_TOKEN: ${{ secrets.WS_ORG_TOKEN }}
