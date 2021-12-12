@@ -320,7 +320,8 @@ def parse_config():
         parser.add_argument('-y', '--DryRun', help="Whether to run the tool without performing anything", dest='dry_run', type=bool, default=False)
         conf = parser.parse_args()
 
-        logger.info(f"Filter Options: {FilterProjectsInt.__subclasses__()}")        # DEBUG
+    logger.info(f"Filter Options: {FilterProjectsInt.__subclasses__()}")  # DEBUG
+    logger.info(f"Mode {conf.mode}")
 
     if conf.analyzed_project_tag:
         generate_analyzed_project_tag(conf.analyzed_project_tag)
