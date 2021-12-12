@@ -19,7 +19,7 @@ jobs:
       - name: Set Environment Variables
         run: |
           echo "RELEASE=false" >> $GITHUB_ENV
-          echo "VERSION=0.0.0.ci0" >> $GITHUB_ENV
+          echo "VERSION=0.0.0ci0" >> $GITHUB_ENV
           echo "TOOL_DIR=$TOOL_NAME" >> $GITHUB_ENV
           if [[ $GITHUB_REF == refs/tags/v* ]]; then
             echo "VERSION=$(echo ${{github.ref}} |  sed -r 's/^[\/a-zA-z-]+//')" >> $GITHUB_ENV
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Set package version
         run: |
-          sed -E -i  "s/^__version__ = \"[a-z0-9\.]+\"/__version__ = \"$VERSION\"/g"  ${{ env.TOOL_DIR }}/_version.py
+          sed -E -i  "s/^__version__ = \"[a-z0-9\.]+\"/__version__ = \"${{ env.VERSION }}\"/g"  ${{ env.TOOL_DIR }}/_version.py
       - uses: UnicornGlobal/trufflehog-actions-scan@master
         with:
           branch: ${{ github.head_ref }}
