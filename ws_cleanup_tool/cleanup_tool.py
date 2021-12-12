@@ -286,6 +286,7 @@ def parse_config():
             if os.path.exists(conf_file):
                 logger.info(f"loading configuration from file: {conf_file}")
                 config.read(conf_file)
+                mode = get_conf_value(config['DEFAULT'].get("OperationMode"), FilterProjectsByUpdateTime.__name__)
 
                 conf = Config(
                     ws_url=config['DEFAULT'].get("WsUrl"),
@@ -294,7 +295,8 @@ def parse_config():
                     excluded_product_tokens=config['DEFAULT'].get("ExcludedProductTokens"),
                     included_product_tokens=config['DEFAULT'].get("IncludedProductTokens"),
                     analyzed_project_tag=config['DEFAULT'].get("AnalyzedProjectTag", None),
-                    mode=config['DEFAULT'].get("OperationMode", FilterProjectsByUpdateTime.__name__), to_keep=config['DEFAULT'].getint("ToToKeep", 5),
+                    mode=mode,
+                    to_keep=config['DEFAULT'].getint("ToToKeep", 5),
                     number_of_projects_to_retain=config['DEFAULT'].getint("NumberOfProjectsToRetain", 1),
                     dry_run=config['DEFAULT'].getboolean("DryRun", False),
                     archive_dir=config['DEFAULT'].get('ReportsDir', os.getcwd()),
@@ -309,7 +311,7 @@ def parse_config():
         parser.add_argument('-k', '--token', help="WS Organization Key", dest='ws_token', required=True)
         parser.add_argument('-a', '--wsUrl', help="WS URL", dest='ws_url')
         parser.add_argument('-t', '--ReportTypes', help="Report Types to generate (comma seperated list)", dest='report_types')
-        parser.add_argument('-m', '--mode', help="Archive operation method", dest='mode',
+        parser.add_argument('-m', '--mode', help="Archive operation method", dest='mode', default="FilterProjectsByUpdateTime",
                             choices=[s.__name__ for s in FilterProjectsInt.__subclasses__()])
         parser.add_argument('-o', '--out', help="Output directory", dest='archive_dir', default=os.getcwd())
         parser.add_argument('-e', '--excludedProductTokens', help="Excluded list", dest='excluded_product_tokens', default="")
