@@ -11,7 +11,7 @@ from multiprocessing.pool import ThreadPool
 
 from ws_sdk import ws_errors, WS, ws_constants
 
-from ws_cleanup_tool._version import __description__, __tool_name__, __version__
+from _version import __description__, __tool_name__, __version__
 
 skip_report_generation = bool(os.environ.get("SKIP_REPORT_GENERATION", 0))
 skip_project_deletion = bool(os.environ.get("SKIP_PROJECT_DELETION", 0))
@@ -296,7 +296,7 @@ def parse_config():
                     included_product_tokens=config['DEFAULT'].get("IncludedProductTokens"),
                     analyzed_project_tag=config['DEFAULT'].get("AnalyzedProjectTag", None),
                     mode=mode,
-                    to_keep=config['DEFAULT'].getint("ToToKeep", 5),
+                    to_keep=config['DEFAULT'].getint("ToKeep", 5),
                     number_of_projects_to_retain=config['DEFAULT'].getint("NumberOfProjectsToRetain", 1),
                     dry_run=config['DEFAULT'].getboolean("DryRun", False),
                     archive_dir=config['DEFAULT'].get('ReportsDir', os.getcwd()),
