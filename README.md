@@ -36,7 +36,7 @@
 1. Download and unzip **ws-cleanup-tool.zip** 
 1. Install requirements: `pip install -r requirements.txt`
 1. Edit the **param.config** file with the appropriate parameters
-1. Execute: `python ws_projects_cleanup.py <CONFIG_FILE>` 
+1. Execute: `python cleanup_tool.py <CONFIG_FILE>` 
   
 ## Parameters Description (_params.config_)
 * IncludedProductTokens - list of included products
