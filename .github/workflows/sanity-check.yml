@@ -14,4 +14,4 @@ jobs:
       - name: Commit Body Check
         uses: tim-actions/commit-body-check@master
         with:
-          commits: ${{ steps.get-pr-commits.outputs.commits }
+          commits: ${{ steps.get-pr-commits.outputs.commits }}
