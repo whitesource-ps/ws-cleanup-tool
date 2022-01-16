@@ -26,3 +26,5 @@ local-env.*
 /build/
 /ws_cleanup_tool.egg-info/
 /dist/
+ws_cleanup_tool/__pycache__/
+ws_cleanup_tool/tests/__pycache__/
