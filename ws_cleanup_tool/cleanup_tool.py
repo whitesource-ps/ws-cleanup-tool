@@ -296,7 +296,7 @@ def parse_config():
                     included_product_tokens=config['DEFAULT'].get("IncludedProductTokens"),
                     analyzed_project_tag=config['DEFAULT'].get("AnalyzedProjectTag", None),
                     mode=mode,
-                    to_keep=config['DEFAULT'].getint("ToToKeep", 5),
+                    to_keep=config['DEFAULT'].getint("ToKeep", 5),
                     number_of_projects_to_retain=config['DEFAULT'].getint("NumberOfProjectsToRetain", 1),
                     dry_run=config['DEFAULT'].getboolean("DryRun", False),
                     archive_dir=config['DEFAULT'].get('ReportsDir', os.getcwd()),
