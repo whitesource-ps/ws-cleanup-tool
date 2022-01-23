@@ -40,7 +40,7 @@ class FilterStrategy:
         projects = self._filter_projects.get_projects_to_archive()
 
         for project in projects:
-            product_name = replace_invalid_chars(project['productName'])
+            product_name = replace_invalid_chars(project['product_name'])
             project_name = replace_invalid_chars(project['name'])
             project['project_archive_dir'] = os.path.join(os.path.join(conf.archive_dir, product_name), project_name)
 
@@ -92,7 +92,7 @@ class FilterProjectsByUpdateTime(FilterProjectsInt):
         return extract_from_q(projects_to_archive_q)
 
     def get_projects_to_archive_w(self, archive_date, prod, ws_conn, projects_to_archive_q):
-        curr_prod_projects = ws_conn.get_projects(product_token=prod['token'])
+        curr_prod_projects = ws_conn.get_projects(product_token=prod['token'], include_prod_proj_names=True)
         logger.info(f"Handling product: {prod['name']} number of projects: {len(curr_prod_projects)}")
 
         for project in curr_prod_projects:
