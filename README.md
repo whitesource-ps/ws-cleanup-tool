@@ -39,8 +39,8 @@
 1. Execute: `python cleanup_tool.py <CONFIG_FILE>` 
   
 ## Parameters Description (_params.config_)
-* IncludedProductTokens - list of included products
-* ExcludedProductTokens - list of excluded products
+* IncludedProductTokens - list of included products. The products that will be audited for archiving (leave blank to audit all). 
+* ExcludedProductTokens - list of excluded products. The products that will be excluded from auditing.
 * WsUrl - URL of WhiteSource Application (optional) 
 * UserKey WhiteSource User Key
 * OrgToken Organization Token
