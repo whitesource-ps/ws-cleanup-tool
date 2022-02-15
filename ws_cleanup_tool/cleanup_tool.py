@@ -13,6 +13,7 @@ from ws_sdk import ws_errors, WS, ws_constants
 
 from ws_cleanup_tool._version import __description__, __tool_name__, __version__
 
+# DEV ONLY
 skip_report_generation = bool(os.environ.get("SKIP_REPORT_GENERATION", 0))
 skip_project_deletion = bool(os.environ.get("SKIP_PROJECT_DELETION", 0))
 
@@ -248,7 +249,6 @@ def parse_config():
         analyzed_project_tag: dict
         mode: str  # = retention  # time_based
         to_keep: int
-        number_of_projects_to_retain: int
         dry_run: bool
         report_types: str
         reports: list
@@ -297,10 +297,9 @@ def parse_config():
                     analyzed_project_tag=config['DEFAULT'].get("AnalyzedProjectTag", None),
                     mode=mode,
                     to_keep=config['DEFAULT'].getint("ToKeep", 5),
-                    number_of_projects_to_retain=config['DEFAULT'].getint("NumberOfProjectsToRetain", 1),
                     dry_run=config['DEFAULT'].getboolean("DryRun", False),
-                    archive_dir=config['DEFAULT'].get('ReportsDir', os.getcwd()),
-                    report_types=config['DEFAULT'].get('Reports'),reports=None,
+                    archive_dir=config['DEFAULT'].get('ArchiveDir', os.getcwd()),
+                    report_types=config['DEFAULT'].get('Reports'), reports=None,
                     project_parallelism_level=config['DEFAULT'].getint('ProjectParallelismLevel', 5), ws_conn=None)
         else:
             logger.error(f"No configuration file found at: {conf_file}")
@@ -310,10 +309,10 @@ def parse_config():
         parser.add_argument('-u', '--userKey', help="WS User Key", dest='ws_user_key', required=True)
         parser.add_argument('-k', '--token', help="WS Organization Key", dest='ws_token', required=True)
         parser.add_argument('-a', '--wsUrl', help="WS URL", dest='ws_url')
-        parser.add_argument('-t', '--ReportTypes', help="Report Types to generate (comma seperated list)", dest='report_types')
+        parser.add_argument('-t', '--ReportTypes', help="comma seperated list of WS Report Types to generate. Leave blank for all types", dest='report_types')
         parser.add_argument('-m', '--mode', help="Archive operation method", dest='mode', default="FilterProjectsByUpdateTime",
                             choices=[s.__name__ for s in FilterProjectsInt.__subclasses__()])
-        parser.add_argument('-o', '--out', help="Output directory", dest='archive_dir', default=os.getcwd())
+        parser.add_argument('-o', '--ArchiveDir', help="Directory location of the archive reports", dest='archive_dir', default=os.getcwd())
         parser.add_argument('-e', '--excludedProductTokens', help="Excluded list", dest='excluded_product_tokens', default="")
         parser.add_argument('-i', '--IncludedProductTokens', help="Included list", dest='included_product_tokens', default="")
         parser.add_argument('-g', '--AnalyzedProjectTag', help="Allows only analyze whether to archive if project contains a specific K:V tag", dest='analyzed_project_tag')
