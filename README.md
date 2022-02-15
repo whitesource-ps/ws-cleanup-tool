@@ -95,9 +95,10 @@ optional arguments:
                         Project parallelism level
   -y DRY_RUN, --DryRun DRY_RUN
                         Whether to run the tool without performing anything
+```
 
 ## Tables of all supported switches
-
+ 
 | Switch                       | config file             | Description                                                       	 | Default 					  |
 |:-----------------------------|:------------------------|:----------------------------------------------------------------------|:---------------------------|
 | -a/--wsUrl                   | WsUrl                   | WS URL (e.g. saas, di.whitesourcesoftware.com)                    	 | saas	   					  |
@@ -112,7 +113,7 @@ optional arguments:
 | -o/--ArchiveDir              | ArchiveDir              | Directory path of archived projects reports 							 | curret path 				  |
 | -p/--ProjectParallelismLevel | ProjectParallelismLevel | Number of threads to run											     | 5						  |
 
-```
+
 ## Examples:
 ```shell
 # Performing dry run to check which project will get deleted if command will be executed this way: 
