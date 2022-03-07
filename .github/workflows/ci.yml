@@ -70,7 +70,7 @@ jobs:
         run: $TOOL_NAME ./$TOOL_DIR/conf/params_ci_time_based.config
         env:
           WS_USER_KEY: ${{ secrets.WS_USER_KEY }}
-          WS_TOKEN: ${{ secrets.WS_ORG_TOKEN }}
+          WS_ORG_TOKEN: ${{ secrets.WS_ORG_TOKEN }}
           SKIP_PROJECT_DELETION: 1
           DRY_RUN: 1
       - name: Full test Time-Based
