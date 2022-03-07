@@ -65,7 +65,7 @@ jobs:
       - name: Create Wheel Package
         run: python setup.py bdist_wheel
       - name: Install Wheel package
-        run: ls -1 dist/*.whl | xargs pip install
+        run: pip install dist/${{ env.TOOL_DIR }}-${{ env.VERSION }}-py3-none-any.whl
       - name: Full Test time-based parameters file
         run: $TOOL_NAME ./$TOOL_DIR/conf/params_ci_time_based.config
         env:
