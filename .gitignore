@@ -22,7 +22,6 @@ local-env.*
 /venv/
 /ws-projects-cleanup/conf/
 /ws_cleanup_tool/cleanup.log
-/ws_cleanup_tool/conf/
 /build/
 /ws_cleanup_tool.egg-info/
 /dist/

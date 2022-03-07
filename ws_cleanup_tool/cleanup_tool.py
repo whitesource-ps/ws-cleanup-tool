@@ -13,8 +13,8 @@ from ws_sdk import ws_errors, WS, ws_constants
 
 from ws_cleanup_tool._version import __description__, __tool_name__, __version__
 
-skip_report_generation = bool(os.environ.get("SKIP_REPORT_GENERATION", 0))
-skip_project_deletion = bool(os.environ.get("SKIP_PROJECT_DELETION", 0))
+# skip_report_generation = bool(os.environ.get("SKIP_REPORT_GENERATION", 0))
+# skip_project_deletion = bool(os.environ.get("SKIP_PROJECT_DELETION", 0))
 
 logging.basicConfig(level=logging.DEBUG if bool(os.environ.get("DEBUG", "false")) is True else logging.INFO,
                     handlers=[logging.StreamHandler(stream=sys.stdout)],
@@ -42,7 +42,7 @@ class FilterStrategy:
         for project in projects:
             product_name = replace_invalid_chars(project['product_name'])
             project_name = replace_invalid_chars(project['name'])
-            project['project_archive_dir'] = os.path.join(os.path.join(conf.archive_dir, product_name), project_name)
+            project['project_output_dir'] = os.path.join(os.path.join(conf.output_dir, product_name), project_name)
 
         return projects
 
@@ -80,9 +80,9 @@ class FilterProjectsInt(ABC):
 
 class FilterProjectsByUpdateTime(FilterProjectsInt):
     def get_projects_to_archive(self) -> list:
-        days_to_keep = timedelta(days=self.conf.to_keep)
+        days_to_keep = timedelta(days=self.conf.days_to_keep)
         archive_date = datetime.utcnow() - days_to_keep
-        logger.info(f"Keeping {days_to_keep.days} days. Archiving projects older than {archive_date}")
+        logger.info(f"Keeping {days_to_keep.days} days. Looking for the projects older than {archive_date}")
 
         manager = Manager()
         projects_to_archive_q = manager.Queue()
@@ -98,13 +98,13 @@ class FilterProjectsByUpdateTime(FilterProjectsInt):
         for project in curr_prod_projects:
             project_time = datetime.strptime(project['lastUpdatedDate'], "%Y-%m-%d %H:%M:%S +%f")
             if project_time < archive_date and self.is_valid_project(project):
-                logger.debug(f"Project {project['name']} Token: {project['token']} Last update: {project['lastUpdatedDate']} will be archived")
+                logger.debug(f"Project {project['name']} Token: {project['token']} Last update: {project['lastUpdatedDate']} will be cleaned up")
                 projects_to_archive_q.put(project)
 
 
 class FilterProjectsByLastCreatedCopies(FilterProjectsInt):
     def get_projects_to_archive(self) -> list:
-        logger.info(f"Keeping last recent {self.conf.to_keep} projects. Archiving the rest")
+        logger.info(f"Keeping last recent {self.conf.days_to_keep} projects. Cleaning up the rest")
         manager = Manager()
         projects_to_archive_q = manager.Queue()
         with ThreadPool(processes=self.conf.project_parallelism_level) as pool:
@@ -113,20 +113,20 @@ class FilterProjectsByLastCreatedCopies(FilterProjectsInt):
         projects_to_archive = extract_from_q(projects_to_archive_q)
 
         if not projects_to_archive:
-            logger.info("No projects to archive were found")
+            logger.info("No projects to clean up were found")
 
         return projects_to_archive
 
     def get_projects_to_archive_w(self, product_token: str, ws_conn: WS, projects_to_archive_q):
         projects = ws_conn.get_projects(product_token=product_token, sort_by=ws_constants.ScopeSorts.UPDATE_TIME)
         filtered_projects = [project for project in projects if self.is_valid_project(project)]
-        if len(filtered_projects) > self.conf.to_keep:
-            index = len(filtered_projects) - self.conf.to_keep
+        if len(filtered_projects) > self.conf.days_to_keep:
+            index = len(filtered_projects) - self.conf.days_to_keep
             last_projects = filtered_projects[:index]
             logger.debug(f"Total {len(filtered_projects)}. Archiving first {index}")
             projects_to_archive_q.put(last_projects)
         else:
-            logger.debug(f"Total {len(filtered_projects)}. Archiving none")
+            logger.debug(f"Total {len(filtered_projects)}. Nothing to cleanup")
 
 
 def extract_from_q(projects_to_archive_q):
@@ -142,16 +142,16 @@ def get_reports_to_archive(projects_to_archive: list) -> list:
     project_reports_desc_list = []
 
     for project in projects_to_archive:  # Creating list of report to-be-produced meta data
-        if not os.path.exists(project['project_archive_dir']):
-            os.makedirs(project['project_archive_dir'])
+        if not os.path.exists(project['project_output_dir']):
+            os.makedirs(project['project_output_dir'])
 
-        for report in conf.reports:
+        for report in conf.report_types:
             curr_project_report = project.copy()
             curr_project_report['report'] = report
 
             project_reports_desc_list.append(curr_project_report)
 
-    logger.info(f"Found total {len(projects_to_archive)} projects to archive ({len(project_reports_desc_list)} reports will be produced)")
+    logger.info(f"Found total {len(projects_to_archive)} projects to clean up ({len(project_reports_desc_list)} reports will be produced)")
 
     return project_reports_desc_list
 
@@ -187,7 +187,7 @@ def generate_reports_m(reports_desc_list: list) -> list:
         failed_projects.append(failed_proj_tokens_q.get(block=True, timeout=0.05))
 
     if failed_projects:
-        logger.warning(f"{len(failed_projects)} projects were failed to archive")
+        logger.warning(f"{len(failed_projects)} projects were failed to clean up")
 
     return failed_projects
 
@@ -198,11 +198,11 @@ def generate_report_w(report_desc: dict, connector: WS, w_f_proj_tokens_q) -> No
 
     if report_desc['report'].bin_sfx:
         report_name = f"{report_desc['report'].name}.{get_suffix(report_desc['report'].bin_sfx)}"
-        report_full_path = os.path.join(report_desc['project_archive_dir'], report_name)
+        report_full_path = os.path.join(report_desc['project_output_dir'], report_name)
         if conf.dry_run:
-            logger.info(f"[DRY_RUN] Generating report: '{report_full_path}' project: '{report_desc['name']}'")
+            logger.info(f"[DRY_RUN] Report: '{report_name}' has to be created on the project: '{report_desc['name']}'")
         else:
-            logger.debug(f"Generating report: '{report_full_path}' on project: '{report_desc['name']}'")
+            logger.debug(f"Generating report: '{report_full_path}' on the project: '{report_desc['name']}'")
             try:
                 report = report_desc['report'].func(connector, token=report_desc['token'], report=True)
                 f = open(report_full_path, 'bw')
@@ -217,43 +217,48 @@ def generate_report_w(report_desc: dict, connector: WS, w_f_proj_tokens_q) -> No
 
 
 def delete_projects(projects_to_archive: list, failed_project_tokens: list) -> None:
+    w_dry_run = conf.dry_run
     projects_to_delete = projects_to_archive.copy()
     for project in projects_to_archive:
         if project['token'] in failed_project_tokens:
             projects_to_delete.remove(project)
-    logger.info(f"Out of {len(projects_to_archive)} projects, {len(projects_to_delete)} projects will be deleted")
+    logger.info(f"Total found {len(projects_to_archive)} projects to delete. {len(projects_to_delete)} projects have valid tokens and should be deleted")
 
     if projects_to_delete:
         with ThreadPool(processes=1) as thread_pool:
-            thread_pool.starmap(worker_delete_project, [(conf.ws_conn, project, conf.dry_run) for project in projects_to_delete])
-        logger.info(f"{len(projects_to_archive)} projects deleted")
+            thread_pool.starmap(worker_delete_project, [(conf.ws_conn, project, w_dry_run) for project in projects_to_delete])
+        if w_dry_run:
+            logger.info(f"Total found {len(projects_to_delete)} projects that have to be deleted")
+        else:
+            logger.info(f"{len(projects_to_delete)} projects have been deleted")
 
 
 def worker_delete_project(conn, project, w_dry_run):
     if w_dry_run:
-        logger.info(f"[DRY_RUN] Deleting project: {project['name']} Token: {project['token']}")
+        logger.info(f"[DRY_RUN] project: {project['name']}. Last update date is: {project['lastUpdatedDate']}. Token: {project['token']} ")
     else:
-        logger.info(f"Deleting project: {project['name']} Token: {project['token']}")
+        logger.info(f"Deleting project: {project['name']}. Last update date is: {project['lastUpdatedDate']}. Token: {project['token']} ")
         conn.delete_scope(project['token'])
 
 
 def parse_config():
     @dataclass
     class Config:
-        ws_url: str
-        ws_token: str
         ws_user_key: str
+        ws_org_token: str
+        ws_url: str
+        report_types: str
+        operation_mode: str
+        output_dir: str
         excluded_product_tokens: list
         included_product_tokens: list
         analyzed_project_tag: dict
-        mode: str  # = retention  # time_based
-        to_keep: int
-        number_of_projects_to_retain: int
-        dry_run: bool
-        report_types: str
-        reports: list
-        archive_dir: str
+        days_to_keep: int
         project_parallelism_level: int
+        dry_run: bool
+        skip_report_generation: bool
+        skip_project_deletion: bool
+
         ws_conn: WS
 
     def get_conf_value(c_p_val, alt_val):
@@ -283,43 +288,50 @@ def parse_config():
             logger.info(f"loading configuration from file: {conf_file}")
             config = ConfigParser()
             config.optionxform = str
-            if os.path.exists(conf_file):
-                logger.info(f"loading configuration from file: {conf_file}")
-                config.read(conf_file)
-                mode = get_conf_value(config['DEFAULT'].get("OperationMode"), FilterProjectsByUpdateTime.__name__)
+            # if os.path.exists(conf_file):
+            #     logger.info(f"loading configuration from file: {conf_file}")
+            config.read(conf_file)
+            operation_mode = get_conf_value(config['DEFAULT'].get("OperationMode"), FilterProjectsByUpdateTime.__name__)
 
-                conf = Config(
-                    ws_url=config['DEFAULT'].get("WsUrl"),
-                    ws_token=get_conf_value(config['DEFAULT'].get("OrgToken"), os.environ.get("WS_TOKEN")),
-                    ws_user_key=get_conf_value(config['DEFAULT'].get("UserKey"), os.environ.get("WS_USER_KEY")),
-                    excluded_product_tokens=config['DEFAULT'].get("ExcludedProductTokens"),
-                    included_product_tokens=config['DEFAULT'].get("IncludedProductTokens"),
-                    analyzed_project_tag=config['DEFAULT'].get("AnalyzedProjectTag", None),
-                    mode=mode,
-                    to_keep=config['DEFAULT'].getint("ToKeep", 5),
-                    number_of_projects_to_retain=config['DEFAULT'].getint("NumberOfProjectsToRetain", 1),
-                    dry_run=config['DEFAULT'].getboolean("DryRun", False),
-                    archive_dir=config['DEFAULT'].get('ReportsDir', os.getcwd()),
-                    report_types=config['DEFAULT'].get('Reports'),reports=None,
-                    project_parallelism_level=config['DEFAULT'].getint('ProjectParallelismLevel', 5), ws_conn=None)
+            conf = Config(
+                ws_user_key=get_conf_value(config['DEFAULT'].get("WsUserKey"), os.environ.get("WS_USER_KEY")),
+                ws_org_token=get_conf_value(config['DEFAULT'].get("WsOrgToken"), os.environ.get("WS_ORG_TOKEN")),
+                ws_url=get_conf_value(config['DEFAULT'].get("WsUrl"), os.environ.get("WS_URL")),
+                report_types=get_conf_value(config['DEFAULT'].get('ReportTypes'), os.environ.get("REPORT_TYPES")),
+                operation_mode=operation_mode,
+                output_dir=get_conf_value(config['DEFAULT'].get('ReportsDir'), os.getcwd()),
+                excluded_product_tokens=get_conf_value(config['DEFAULT'].get("ExcludedProductTokens", None), os.environ.get("EXCLUDED_PRODUCT_TOKENS")),
+                included_product_tokens=get_conf_value(config['DEFAULT'].get("IncludedProductTokens", None), os.environ.get("INCLUDED_PRODUCT_TOKENS")),
+                analyzed_project_tag=get_conf_value(config['DEFAULT'].get("AnalyzedProjectTag", None), os.environ.get("ANALYZED_PROJECT_TAG")),
+                days_to_keep=get_conf_value(config['DEFAULT'].getint("DaysToKeep", 50000), os.environ.get("DAYS_TO_KEEP")),
+                project_parallelism_level=config['DEFAULT'].getint('ProjectParallelismLevel', 5),
+                dry_run=config['DEFAULT'].getboolean("DryRun", False),
+                skip_report_generation=config['DEFAULT'].getboolean("SkipReportGeneration", False),
+                skip_project_deletion=config['DEFAULT'].getboolean("SkipProjectDeletion", False),
+                ws_conn=None
+            )
+
+
         else:
             logger.error(f"No configuration file found at: {conf_file}")
             raise FileNotFoundError
     else:
         parser = argparse.ArgumentParser(description=__description__)
-        parser.add_argument('-u', '--userKey', help="WS User Key", dest='ws_user_key', required=True)
-        parser.add_argument('-k', '--token', help="WS Organization Key", dest='ws_token', required=True)
-        parser.add_argument('-a', '--wsUrl', help="WS URL", dest='ws_url')
-        parser.add_argument('-t', '--ReportTypes', help="Report Types to generate (comma seperated list)", dest='report_types')
-        parser.add_argument('-m', '--mode', help="Archive operation method", dest='mode', default="FilterProjectsByUpdateTime",
+        parser.add_argument('-u', '--userKey', help="WS User Key", dest='ws_user_key', default=os.environ.get("WS_USER_KEY"))
+        parser.add_argument('-k', '--orgToken', help="WS Organization Key", dest='ws_org_token', default=os.environ.get("WS_ORG_TOKEN"))
+        parser.add_argument('-a', '--wsUrl', help="WS URL", dest='ws_url', default=os.environ.get("WS_URL"))
+        parser.add_argument('-t', '--reportTypes', help="Report Types to generate (comma seperated list)", dest='report_types', default=os.environ.get("REPORT_TYPES"))
+        parser.add_argument('-m', '--operationMode', help="Clean up operation method", dest='operation_mode', default="FilterProjectsByUpdateTime",
                             choices=[s.__name__ for s in FilterProjectsInt.__subclasses__()])
-        parser.add_argument('-o', '--out', help="Output directory", dest='archive_dir', default=os.getcwd())
-        parser.add_argument('-e', '--excludedProductTokens', help="Excluded list", dest='excluded_product_tokens', default="")
-        parser.add_argument('-i', '--IncludedProductTokens', help="Included list", dest='included_product_tokens', default="")
-        parser.add_argument('-g', '--AnalyzedProjectTag', help="Allows only analyze whether to archive if project contains a specific K:V tag", dest='analyzed_project_tag')
-        parser.add_argument('-r', '--ToKeep', help="Number of days to keep in FilterProjectsByUpdateTime or number of copies in FilterProjectsByLastCreatedCopies", dest='to_keep', type=int, default=5)
-        parser.add_argument('-p', '--ProjectParallelismLevel', help="Project parallelism level", dest='project_parallelism_level', type=int, default=5)
-        parser.add_argument('-y', '--DryRun', help="Whether to run the tool without performing anything", dest='dry_run', type=bool, default=False)
+        parser.add_argument('-o', '--outputDir', help="Output directory", dest='output_dir', default=os.getcwd())
+        parser.add_argument('-e', '--excludedProductTokens', help="Excluded list", dest='excluded_product_tokens', default=os.environ.get("EXCLUDED_PRODUCT_TOKENS"))
+        parser.add_argument('-i', '--includedProductTokens', help="Included list", dest='included_product_tokens', default=os.environ.get("EXCLUDED_PRODUCT_TOKENS"))
+        parser.add_argument('-g', '--analyzedProjectTag', help="Allows only analyze whether to clean up when a project contains the specific K:V tag", dest='analyzed_project_tag', default=os.environ.get("ANALYZED_PROJECT_TAG"))
+        parser.add_argument('-r', '--daysToKeep', help="Number of days to keep in FilterProjectsByUpdateTime or number of copies in FilterProjectsByLastCreatedCopies", dest='days_to_keep', type=int, default=50000)
+        parser.add_argument('-p', '--projectParallelismLevel', help="Project parallelism level", dest='project_parallelism_level', type=int, default=5)
+        parser.add_argument('-y', '--dryRun', help="Whether to run the tool without performing anything", dest='dry_run', type=bool, default=False)
+        parser.add_argument('-s', '--skipReportGeneration', help="Skip Report Generation", dest='skip_report_generation', type=bool, default=False)
+        parser.add_argument('-j', '--skipProjectDeletion', help="Skip Project Generation", dest='skip_project_deletion', type=bool, default=False)
         conf = parser.parse_args()
 
     if conf.analyzed_project_tag:
@@ -327,10 +339,10 @@ def parse_config():
 
     conf.included_product_tokens = conf.included_product_tokens.replace(" ", "").split(",") if conf.included_product_tokens else []
     conf.excluded_product_tokens = conf.excluded_product_tokens.replace(" ", "").split(",") if conf.excluded_product_tokens else []
-    conf.reports = get_reports(conf.report_types)
+    conf.report_types = get_reports(conf.report_types)
     conf.ws_conn = WS(url=conf.ws_url,
                       user_key=conf.ws_user_key,
-                      token=conf.ws_token,
+                      token=conf.ws_org_token,
                       tool_details=(f"ps-{__tool_name__.replace('_', '-')}", __version__))
     return conf
 
@@ -360,23 +372,23 @@ def main():
     except FileNotFoundError:
         exit(-1)
 
-    logger.info(f"Starting project cleanup in '{conf.mode}' archive mode. Generating {len(conf.reports)} report types with {conf.project_parallelism_level} threads")
+    logger.info(f"Starting project cleanup in '{conf.operation_mode}' mode. Generating {len(conf.report_types)} report types with {conf.project_parallelism_level} threads")
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
-    filter_class = FilterStrategy(globals()[conf.mode](products_to_clean, conf))
+    filter_class = FilterStrategy(globals()[conf.operation_mode](products_to_clean, conf))
     projects_to_archive = filter_class.execute()
     reports_to_archive = get_reports_to_archive(projects_to_archive)
     failed_project_tokens = []
 
-    if skip_report_generation:
+    if conf.skip_report_generation:
         logger.info("Skipping Report Generation")
     else:
         failed_project_tokens = generate_reports_m(reports_to_archive)
-    if skip_project_deletion:
+    if conf.skip_project_deletion:
         logger.info("Skipping Project Deletion")
     else:
         delete_projects(projects_to_archive, failed_project_tokens)
 
-    logger.info(f"Project Cleanup finished. Run time: {datetime.now() - start_time}")
+    logger.info(f"Project Cleanup has been finished. Run time: {datetime.now() - start_time}")
 
 
 if __name__ == '__main__':
