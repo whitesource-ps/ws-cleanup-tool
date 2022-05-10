@@ -36,7 +36,7 @@
 ## Installation and Execution from GitHub:
 1. Download and unzip **ws-cleanup-tool.zip** 
 2. Install requirements: `pip install -r requirements.txt`
-3. Configure the appropriate parameters either by using the command line or in `params.config`.
+3. Configure the appropriate parameters either by using the command line or `params.config`.
 4. Execute: `python cleanup_tool.py <CONFIG_FILE>` 
 
 ## Full Usage flags:
@@ -72,17 +72,21 @@ optional arguments:
                     Project parallelism level
   -y DRY_RUN, --DryRun
                     Logging the projects that should be deleted without deleting and creating reports
+  -x EXCLUDED_PROJECT_TOKENS, --excludedProjectTokens
+                    List of excluded projects
 ```
 ## Examples:
 ```shell
 # Perform dry run check-in for getting know which projects would have been deleted: 
 ws_cleanup_tool -r 30 -m FilterProjectsByUpdateTime -u <USER_KEY> -t <ORG_TOKEN> -y true 
-# Keep last 60 days on each product, omitting a product token x from analyzing:
-ws_cleanup_tool -r 60 -m FilterProjectsByUpdateTime -u <USER_KEY> -t <ORG_TOKEN> -e x
-# Keep only 2 of the newest projects in each product token x and y:
-ws_cleanup_tool -r 2 -m FilterProjectsByLastCreatedCopies -u <USER_KEY> -t <ORG_TOKEN> -i x,y
+# Keep last 60 days on each product, omitting a product token <PRODUCT_1> from analyzing:
+ws_cleanup_tool -r 60 -m FilterProjectsByUpdateTime -u <USER_KEY> -t <ORG_TOKEN> -e <PRODUCT_TOKEN_1>
+# Keep only 2 of the newest projects in each product token PRODUCT_1 and PRODUCT_2:
+ws_cleanup_tool -r 2 -m FilterProjectsByLastCreatedCopies -u <USER_KEY> -t <ORG_TOKEN> -i <PRODUCT_TOKEN_1>,<PRODUCT_TOKEN_2>
 # Analyze only the projects that have a WhiteSource tag and keep the newest project in each product token:
-ws_cleanup_tool -r 1 -m FilterProjectsByLastCreatedCopies -u <USER_KEY> -t <ORG_TOKEN>
+ws_cleanup_tool -r 1 -m FilterProjectsByLastCreatedCopies -u <USER_KEY> -t <ORG_TOKEN> -g <PROJECT_TAG>
+# Keep last 100 days for both PRODUCT_1 and PRODUCT_2, but do not delete the project PROJECT_1 (which is a project in one of the included products):
+ws_cleanup_tool -r 100 -m FilterProjectsByUpdateTime -u <USER_KEY> -t <ORG_TOKEN> -i <PRODUCT_TOKEN_1>,<PRODUCT_TOKEN_2> -x <PROJECT_TOKEN_1>
 ```
 
 **note:** The optimal number is derived from the size of the environment, WhiteSource scope size (memory and CPU) allocated for the server, and runtime time constraints.    
