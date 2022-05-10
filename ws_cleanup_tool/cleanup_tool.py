@@ -175,6 +175,21 @@ def get_products_to_archive(included_product_tokens: list, excluded_product_toke
     return prods
 
 
+def exclude_projects(projects_to_archive, excluded_project_tokens: list) -> list:
+    if excluded_project_tokens:
+        if not ([proj for proj in projects_to_archive if proj['token'] in excluded_project_tokens]):
+            logger.error(f"Project excluded_project_tokens doesn't exist in the provided products")
+            exit(-1)
+        else:
+            logger.debug(f"Exclude project tokens: {excluded_project_tokens}")
+            projects = [proj for proj in projects_to_archive if proj['token'] not in excluded_project_tokens]
+    else:
+        projects = projects_to_archive
+    logger.info(f"Project names for cleanup check: {[proj['name'] for proj in projects]}")
+
+    return projects
+
+
 def generate_reports_m(reports_desc_list: list) -> list:
     manager = Manager()
     failed_proj_tokens_q = manager.Queue()
@@ -252,6 +267,7 @@ def parse_config():
         output_dir: str
         excluded_product_tokens: list
         included_product_tokens: list
+        excluded_project_tokens: list
         analyzed_project_tag: dict
         days_to_keep: int
         project_parallelism_level: int
@@ -302,12 +318,13 @@ def parse_config():
                 output_dir=get_conf_value(config['DEFAULT'].get('ReportsDir'), os.getcwd()),
                 excluded_product_tokens=get_conf_value(config['DEFAULT'].get("ExcludedProductTokens", None), os.environ.get("EXCLUDED_PRODUCT_TOKENS")),
                 included_product_tokens=get_conf_value(config['DEFAULT'].get("IncludedProductTokens", None), os.environ.get("INCLUDED_PRODUCT_TOKENS")),
+                excluded_project_tokens=get_conf_value(config['DEFAULT'].get("ExcludedProjectTokens", None), os.environ.get("EXCLUDED_PROJECT_TOKENS")),
                 analyzed_project_tag=get_conf_value(config['DEFAULT'].get("AnalyzedProjectTag", None), os.environ.get("ANALYZED_PROJECT_TAG")),
                 days_to_keep=get_conf_value(config['DEFAULT'].getint("DaysToKeep", 50000), os.environ.get("DAYS_TO_KEEP")),
                 project_parallelism_level=config['DEFAULT'].getint('ProjectParallelismLevel', 5),
-                dry_run=config['DEFAULT'].getboolean("DryRun", False),
-                skip_report_generation=config['DEFAULT'].getboolean("SkipReportGeneration", False),
-                skip_project_deletion=config['DEFAULT'].getboolean("SkipProjectDeletion", False),
+                dry_run=config['DEFAULT'].getboolean("DryRun", True),
+                skip_report_generation=config['DEFAULT'].getboolean("SkipReportGeneration", True),
+                skip_project_deletion=config['DEFAULT'].getboolean("SkipProjectDeletion", True),
                 ws_conn=None
             )
 
@@ -324,14 +341,15 @@ def parse_config():
         parser.add_argument('-m', '--operationMode', help="Clean up operation method", dest='operation_mode', default="FilterProjectsByUpdateTime",
                             choices=[s.__name__ for s in FilterProjectsInt.__subclasses__()])
         parser.add_argument('-o', '--outputDir', help="Output directory", dest='output_dir', default=os.getcwd())
-        parser.add_argument('-e', '--excludedProductTokens', help="Excluded list", dest='excluded_product_tokens', default=os.environ.get("EXCLUDED_PRODUCT_TOKENS"))
-        parser.add_argument('-i', '--includedProductTokens', help="Included list", dest='included_product_tokens', default=os.environ.get("EXCLUDED_PRODUCT_TOKENS"))
+        parser.add_argument('-e', '--excludedProductTokens', help="Excluded Product Tokens list", dest='excluded_product_tokens', default=os.environ.get("EXCLUDED_PRODUCT_TOKENS"))
+        parser.add_argument('-i', '--includedProductTokens', help="Included Product Tokens list", dest='included_product_tokens', default=os.environ.get("INCLUDED_PRODUCT_TOKENS"))
+        parser.add_argument('-x', '--excludedProjectTokens', help="Excluded Project Tokens list", dest='excluded_project_tokens', default=os.environ.get("EXCLUDED_PROJECT_TOKENS"))
         parser.add_argument('-g', '--analyzedProjectTag', help="Allows only analyze whether to clean up when a project contains the specific K:V tag", dest='analyzed_project_tag', default=os.environ.get("ANALYZED_PROJECT_TAG"))
         parser.add_argument('-r', '--daysToKeep', help="Number of days to keep in FilterProjectsByUpdateTime or number of copies in FilterProjectsByLastCreatedCopies", dest='days_to_keep', type=int, default=50000)
         parser.add_argument('-p', '--projectParallelismLevel', help="Project parallelism level", dest='project_parallelism_level', type=int, default=5)
-        parser.add_argument('-y', '--dryRun', help="Whether to run the tool without performing anything", dest='dry_run', type=bool, default=False)
-        parser.add_argument('-s', '--skipReportGeneration', help="Skip Report Generation", dest='skip_report_generation', type=bool, default=False)
-        parser.add_argument('-j', '--skipProjectDeletion', help="Skip Project Generation", dest='skip_project_deletion', type=bool, default=False)
+        parser.add_argument('-y', '--dryRun', help="Whether to run the tool without performing anything", dest='dry_run', type=bool, default=True)
+        parser.add_argument('-s', '--skipReportGeneration', help="Skip Report Generation", dest='skip_report_generation', type=bool, default=True)
+        parser.add_argument('-j', '--skipProjectDeletion', help="Skip Project Generation", dest='skip_project_deletion', type=bool, default=True)
         conf = parser.parse_args()
 
     if conf.analyzed_project_tag:
@@ -339,6 +357,7 @@ def parse_config():
 
     conf.included_product_tokens = conf.included_product_tokens.replace(" ", "").split(",") if conf.included_product_tokens else []
     conf.excluded_product_tokens = conf.excluded_product_tokens.replace(" ", "").split(",") if conf.excluded_product_tokens else []
+    conf.excluded_project_tokens = conf.excluded_project_tokens.replace(" ", "").split(",") if conf.excluded_project_tokens else []
     conf.report_types = get_reports(conf.report_types)
     conf.ws_conn = WS(url=conf.ws_url,
                       user_key=conf.ws_user_key,
@@ -376,7 +395,8 @@ def main():
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
     filter_class = FilterStrategy(globals()[conf.operation_mode](products_to_clean, conf))
     projects_to_archive = filter_class.execute()
-    reports_to_archive = get_reports_to_archive(projects_to_archive)
+    filtered_projects_to_archive = exclude_projects(projects_to_archive, conf.excluded_project_tokens)
+    reports_to_archive = get_reports_to_archive(filtered_projects_to_archive)
     failed_project_tokens = []
 
     if conf.skip_report_generation:
@@ -386,7 +406,7 @@ def main():
     if conf.skip_project_deletion:
         logger.info("Skipping Project Deletion")
     else:
-        delete_projects(projects_to_archive, failed_project_tokens)
+        delete_projects(filtered_projects_to_archive, failed_project_tokens)
 
     logger.info(f"Project Cleanup has been finished. Run time: {datetime.now() - start_time}")
 
