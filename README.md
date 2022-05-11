@@ -74,6 +74,8 @@ optional arguments:
                     Logging the projects that should be deleted without deleting and creating reports
   -x EXCLUDED_PROJECT_TOKENS, --excludedProjectTokens
                     List of excluded projects
+  -n EXCLUDED_PROJECT_NAME_PATTERNS, --excludedProjectNamePatterns
+                    List of excluded project name patterns                 
 ```
 ## Examples:
 ```shell
@@ -87,6 +89,8 @@ ws_cleanup_tool -r 2 -m FilterProjectsByLastCreatedCopies -u <USER_KEY> -t <ORG_
 ws_cleanup_tool -r 1 -m FilterProjectsByLastCreatedCopies -u <USER_KEY> -t <ORG_TOKEN> -g <PROJECT_TAG>
 # Keep last 100 days for both PRODUCT_1 and PRODUCT_2, but do not delete the project PROJECT_1 (which is a project in one of the included products):
 ws_cleanup_tool -r 100 -m FilterProjectsByUpdateTime -u <USER_KEY> -t <ORG_TOKEN> -i <PRODUCT_TOKEN_1>,<PRODUCT_TOKEN_2> -x <PROJECT_TOKEN_1>
+# Keep last 100 days for both PRODUCT_1 and PRODUCT_2, but do not delete projects that contain provided strings in their names:
+ws_cleanup_tool -r 100 -m FilterProjectsByUpdateTime -u <USER_KEY> -t <ORG_TOKEN> -i <PRODUCT_TOKEN_1>,<PRODUCT_TOKEN_2> -n CI_,-test
 ```
 
 **note:** The optimal number is derived from the size of the environment, WhiteSource scope size (memory and CPU) allocated for the server, and runtime time constraints.    
