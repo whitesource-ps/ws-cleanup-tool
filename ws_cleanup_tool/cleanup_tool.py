@@ -372,7 +372,7 @@ def parse_config():
     conf.included_product_tokens = conf.included_product_tokens.replace(" ", "").split(",") if conf.included_product_tokens else []
     conf.excluded_product_tokens = conf.excluded_product_tokens.replace(" ", "").split(",") if conf.excluded_product_tokens else []
     conf.excluded_project_tokens = conf.excluded_project_tokens.replace(" ", "").split(",") if conf.excluded_project_tokens else []
-    conf.excluded_project_name_patterns = conf.excluded_project_name_patterns.replace(" ", "").split(",") if conf.excluded_project_name_patterns else []
+    conf.excluded_project_name_patterns = conf.excluded_project_name_patterns.split(",") if conf.excluded_project_name_patterns else []
     conf.report_types = get_reports(conf.report_types)
     conf.ws_conn = WS(url=conf.ws_url,
                       user_key=conf.ws_user_key,
