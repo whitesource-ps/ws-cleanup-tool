@@ -75,7 +75,11 @@ optional arguments:
   -x EXCLUDED_PROJECT_TOKENS, --excludedProjectTokens
                     List of excluded projects
   -n EXCLUDED_PROJECT_NAME_PATTERNS, --excludedProjectNamePatterns
-                    List of excluded project name patterns                 
+                    List of excluded project name patterns
+  -s SKIP_REPORT_GENERATION, --skipReportGeneration
+                    Skip report generation step 
+  -j SKIP_PROJECT_DELETION, --skipProjectDeletion
+                    Skip project deletion step 
 ```
 ## Examples:
 ```shell
