@@ -336,8 +336,8 @@ def parse_config():
                 days_to_keep=get_conf_value(config['DEFAULT'].getint("DaysToKeep", 50000), os.environ.get("DAYS_TO_KEEP")),
                 project_parallelism_level=config['DEFAULT'].getint('ProjectParallelismLevel', 5),
                 dry_run=config['DEFAULT'].getboolean("DryRun", True),
-                skip_report_generation=config['DEFAULT'].getboolean("SkipReportGeneration", True),
-                skip_project_deletion=config['DEFAULT'].getboolean("SkipProjectDeletion", True),
+                skip_report_generation=config['DEFAULT'].getboolean("SkipReportGeneration", False),
+                skip_project_deletion=config['DEFAULT'].getboolean("SkipProjectDeletion", False),
                 ws_conn=None
             )
 
@@ -362,8 +362,8 @@ def parse_config():
         parser.add_argument('-r', '--daysToKeep', help="Number of days to keep in FilterProjectsByUpdateTime or number of copies in FilterProjectsByLastCreatedCopies", dest='days_to_keep', type=int, default=50000)
         parser.add_argument('-p', '--projectParallelismLevel', help="Project parallelism level", dest='project_parallelism_level', type=int, default=5)
         parser.add_argument('-y', '--dryRun', help="Whether to run the tool without performing anything", dest='dry_run', type=bool, default=True)
-        parser.add_argument('-s', '--skipReportGeneration', help="Skip Report Generation", dest='skip_report_generation', type=bool, default=True)
-        parser.add_argument('-j', '--skipProjectDeletion', help="Skip Project Generation", dest='skip_project_deletion', type=bool, default=True)
+        parser.add_argument('-s', '--skipReportGeneration', help="Skip Report Generation", dest='skip_report_generation', type=bool, default=False)
+        parser.add_argument('-j', '--skipProjectDeletion', help="Skip Project Deletion", dest='skip_project_deletion', type=bool, default=False)
         conf = parser.parse_args()
 
     if conf.analyzed_project_tag:
