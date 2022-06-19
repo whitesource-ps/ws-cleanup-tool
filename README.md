@@ -72,6 +72,13 @@ optional arguments:
                     Project parallelism level
   -y DRY_RUN, --DryRun
                     Logging the projects that should be deleted without deleting and creating reports
+                    default False
+  -s SKIP_REPORT_GENERATION, --SkipReportGeneration
+                    Skip report generation step
+                    default True
+  -j SKIP_PROJECT_DELETION, --SkipProjectDeletion
+                    Skip project deletion step
+                    default False                                        
   -x EXCLUDED_PROJECT_TOKENS, --excludedProjectTokens
                     List of excluded projects
   -n EXCLUDED_PROJECT_NAME_PATTERNS, --excludedProjectNamePatterns
