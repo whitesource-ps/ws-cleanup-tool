@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from configparser import ConfigParser
 from dataclasses import dataclass
 from datetime import timedelta, datetime
+from distutils.util import strtobool
 from multiprocessing import Manager
 from multiprocessing.pool import ThreadPool
 
@@ -335,8 +336,8 @@ def parse_config():
                 analyzed_project_tag=get_conf_value(config['DEFAULT'].get("AnalyzedProjectTag", None), os.environ.get("ANALYZED_PROJECT_TAG")),
                 days_to_keep=get_conf_value(config['DEFAULT'].getint("DaysToKeep", 50000), os.environ.get("DAYS_TO_KEEP")),
                 project_parallelism_level=config['DEFAULT'].getint('ProjectParallelismLevel', 5),
-                dry_run=config['DEFAULT'].getboolean("DryRun", True),
-                skip_report_generation=config['DEFAULT'].getboolean("SkipReportGeneration", False),
+                dry_run=config['DEFAULT'].getboolean("DryRun", False),
+                skip_report_generation=config['DEFAULT'].getboolean("SkipReportGeneration", True),
                 skip_project_deletion=config['DEFAULT'].getboolean("SkipProjectDeletion", False),
                 ws_conn=None
             )
@@ -361,9 +362,9 @@ def parse_config():
         parser.add_argument('-g', '--analyzedProjectTag', help="Allows only analyze whether to clean up when a project contains the specific K:V tag", dest='analyzed_project_tag', default=os.environ.get("ANALYZED_PROJECT_TAG"))
         parser.add_argument('-r', '--daysToKeep', help="Number of days to keep in FilterProjectsByUpdateTime or number of copies in FilterProjectsByLastCreatedCopies", dest='days_to_keep', type=int, default=50000)
         parser.add_argument('-p', '--projectParallelismLevel', help="Project parallelism level", dest='project_parallelism_level', type=int, default=5)
-        parser.add_argument('-y', '--dryRun', help="Whether to run the tool without performing anything", dest='dry_run', type=bool, default=True)
-        parser.add_argument('-s', '--skipReportGeneration', help="Skip Report Generation", dest='skip_report_generation', type=bool, default=False)
-        parser.add_argument('-j', '--skipProjectDeletion', help="Skip Project Deletion", dest='skip_project_deletion', type=bool, default=False)
+        parser.add_argument('-y', '--dryRun', help="Whether to run the tool without performing anything", dest='dry_run', type=strtobool, default=False)
+        parser.add_argument('-s', '--skipReportGeneration', help="Skip Report Generation", dest='skip_report_generation', type=strtobool, default=True)
+        parser.add_argument('-j', '--skipProjectDeletion', help="Skip Project Deletion", dest='skip_project_deletion', type=strtobool, default=False)
         conf = parser.parse_args()
 
     if conf.analyzed_project_tag:
@@ -377,6 +378,7 @@ def parse_config():
     conf.ws_conn = WS(url=conf.ws_url,
                       user_key=conf.ws_user_key,
                       token=conf.ws_org_token,
+                      skip_ua_download=True,
                       tool_details=(f"ps-{__tool_name__.replace('_', '-')}", __version__))
     return conf
 
