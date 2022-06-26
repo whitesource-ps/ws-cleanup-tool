@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import os
 import sys
@@ -238,6 +239,13 @@ def generate_report_w(report_desc: dict, connector: WS, w_f_proj_tokens_q) -> No
                 f.write(report)
             except ws_errors.WsSdkServerError or OSError:
                 logger.exception(f"Error producing report: '{report_desc['report_type']}' on project {report_desc['name']}. Project will not be deleted.")
+                w_f_proj_tokens_q.put(report_desc['token'])
+            try:
+                alerts_report = connector.get_alerts(token=report_desc['token'], alert_type="REJECTED_BY_POLICY_RESOURCE")
+                with open(f"{os.path.join(report_desc['project_output_dir'])}/alerts_rejected_by_policy.json", 'w', encoding='utf-8') as f:
+                    json.dump(alerts_report, f, ensure_ascii=False, indent=4)
+            except:
+                logger.exception(f"Error producing report: alerts for REJECTED_BY_POLICY_RESOURCE on project {report_desc['name']}. Project will not be deleted.")
                 w_f_proj_tokens_q.put(report_desc['token'])
     else:
         logger.debug(f"Skipping report: {report_desc['report'].name} is invalid")
