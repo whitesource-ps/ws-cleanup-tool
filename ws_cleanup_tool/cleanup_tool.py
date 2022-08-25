@@ -44,7 +44,9 @@ class FilterStrategy:
         for project in projects:
             product_name = replace_invalid_chars(project['product_name'])
             project_name = replace_invalid_chars(project['name'])
-            project['project_output_dir'] = os.path.join(os.path.join(conf.output_dir, product_name), project_name)
+            project_output_dir = os.path.join(os.path.join(conf.output_dir, product_name), project_name)
+            project_output_dir_180_char = (project_output_dir[:180] + '..') if len(project_output_dir) > 180 else project_output_dir
+            project['project_output_dir'] = project_output_dir_180_char
 
         return projects
 
@@ -53,7 +55,7 @@ class FilterProjectsInt(ABC):
     def __init__(self, products_to_clean, config):
         self.products_to_clean = products_to_clean
         self.conf = config
-        self.should_filter_by_tag = True if self.conf.analyzed_project_tag else False
+        self.should_filter_by_tag = True if self.conf.analyzed_project_tag or self.conf.analyzed_project_tag_regex_in_value else False
 
     @abstractmethod
     def get_projects_to_archive(self):
@@ -68,10 +70,20 @@ class FilterProjectsInt(ABC):
             else:
                 return False
 
+        def is_tag_value_contained(p):
+            project_metadata_d = p.get('project_metadata_d', {})
+            if self.conf.analyzed_project_tag_t[0] in project_metadata_d.keys() \
+                    and self.conf.analyzed_project_tag_t[1] in project_metadata_d[self.conf.analyzed_project_tag_t[0]]:
+                return True
+            else:
+                return False
+
         ret = True
         if not self.should_filter_by_tag:
             logger.debug(f"Project {project['name']} is valid")
         elif self.should_filter_by_tag and is_tag_exist(project):
+            logger.debug(f"Project {project['name']} contains appropriate key:value pair: {self.conf.analyzed_project_tag_t}")
+        elif self.should_filter_by_tag and is_tag_value_contained(project):
             logger.debug(f"Project {project['name']} contains appropriate key:value pair: {self.conf.analyzed_project_tag_t}")
         else:
             logger.debug(f"Project {project['name']} does not contain appropriate key:value pair: {self.conf.analyzed_project_tag_t}")
@@ -273,7 +285,7 @@ def worker_delete_project(conn, project, w_dry_run):
         logger.info(f"[DRY_RUN] project: {project['name']}. Last update date is: {project['lastUpdatedDate']}. Token: {project['token']} ")
     else:
         logger.info(f"Deleting project: {project['name']}. Last update date is: {project['lastUpdatedDate']}. Token: {project['token']} ")
-        conn.delete_scope(project['token'])
+        conn.delete_scope(token=project['token'], project=project)
 
 
 def parse_config():
@@ -290,6 +302,7 @@ def parse_config():
         excluded_project_tokens: list
         excluded_project_name_patterns: list
         analyzed_project_tag: dict
+        analyzed_project_tag_regex_in_value: dict
         days_to_keep: int
         project_parallelism_level: int
         dry_run: bool
@@ -342,6 +355,7 @@ def parse_config():
                 excluded_project_tokens=get_conf_value(config['DEFAULT'].get("ExcludedProjectTokens", None), os.environ.get("EXCLUDED_PROJECT_TOKENS")),
                 excluded_project_name_patterns=get_conf_value(config['DEFAULT'].get("ExcludedProjectNamePatterns", None), os.environ.get("EXCLUDED_PROJECT_NAME_PATTERNS")),
                 analyzed_project_tag=get_conf_value(config['DEFAULT'].get("AnalyzedProjectTag", None), os.environ.get("ANALYZED_PROJECT_TAG")),
+                analyzed_project_tag_regex_in_value=get_conf_value(config['DEFAULT'].get("AnalyzedProjectTagRegexInValue", None), os.environ.get("ANALYZED_PROJECT_TAG_REGEX_IN_VALUE")),
                 days_to_keep=get_conf_value(config['DEFAULT'].getint("DaysToKeep", 50000), os.environ.get("DAYS_TO_KEEP")),
                 project_parallelism_level=config['DEFAULT'].getint('ProjectParallelismLevel', 5),
                 dry_run=config['DEFAULT'].getboolean("DryRun", False),
@@ -367,7 +381,8 @@ def parse_config():
         parser.add_argument('-i', '--includedProductTokens', help="Included Product Tokens list", dest='included_product_tokens', default=os.environ.get("INCLUDED_PRODUCT_TOKENS"))
         parser.add_argument('-x', '--excludedProjectTokens', help="Excluded Project Tokens list", dest='excluded_project_tokens', default=os.environ.get("EXCLUDED_PROJECT_TOKENS"))
         parser.add_argument('-n', '--excludedProjectNamePatterns', help="ExcludedProjectNamePatterns", dest='excluded_project_name_patterns', default=os.environ.get("EXCLUDED_PROJECT_NAME_PATTERNS"))
-        parser.add_argument('-g', '--analyzedProjectTag', help="Allows only analyze whether to clean up when a project contains the specific K:V tag", dest='analyzed_project_tag', default=os.environ.get("ANALYZED_PROJECT_TAG"))
+        parser.add_argument('-g', '--analyzedProjectTag', help="Analyze only the projects whose contain the specific Mend tag", dest='analyzed_project_tag', default=os.environ.get("ANALYZED_PROJECT_TAG"))
+        parser.add_argument('-v', '--analyzedProjectTagRegexInValue', help="Analyze only the projects whose match their tag key and the tag value contains the specified regex", dest='analyzed_project_tag_regex_in_value', default=os.environ.get("ANALYZED_PROJECT_TAG_REGEX_IN_VALUE"))
         parser.add_argument('-r', '--daysToKeep', help="Number of days to keep in FilterProjectsByUpdateTime or number of copies in FilterProjectsByLastCreatedCopies", dest='days_to_keep', type=int, default=50000)
         parser.add_argument('-p', '--projectParallelismLevel', help="Project parallelism level", dest='project_parallelism_level', type=int, default=5)
         parser.add_argument('-y', '--dryRun', help="Whether to run the tool without performing anything", dest='dry_run', type=strtobool, default=False)
@@ -377,6 +392,8 @@ def parse_config():
 
     if conf.analyzed_project_tag:
         generate_analyzed_project_tag(conf.analyzed_project_tag)
+    elif conf.analyzed_project_tag_regex_in_value:
+        generate_analyzed_project_tag(conf.analyzed_project_tag_regex_in_value)
 
     conf.included_product_tokens = conf.included_product_tokens.replace(" ", "").split(",") if conf.included_product_tokens else []
     conf.excluded_product_tokens = conf.excluded_product_tokens.replace(" ", "").split(",") if conf.excluded_product_tokens else []
