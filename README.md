@@ -62,15 +62,17 @@ Analyze only the projects that have the specified Mend tag and keep the newest p
 Keep the last 2 weeks and analyze only the projects whose match their tag key and the tag value contains the specified regex:
 `ws_cleanup_tool -r 14 -m FilterProjectsByUpdateTime -u <USER_KEY> -k <ORG_TOKEN> -g <KEY>:<REGEX_VALUE>`
 
---
+---
 
 Keep the last 100 days for both PRODUCT_1 and PRODUCT_2, but do not delete the project PROJECT_1 (which is a project in one of the included products):
 `ws_cleanup_tool -r 100 -m FilterProjectsByUpdateTime -u <USER_KEY> -k <ORG_TOKEN> -i <PRODUCT_TOKEN_1>,<PRODUCT_TOKEN_2> -x <PROJECT_TOKEN_1>`
 
---
+---
 
 Keep the last month for both PRODUCT_1 and PRODUCT_2, but do not delete projects that contain provided strings in their names:
 `ws_cleanup_tool -r 31 -m FilterProjectsByUpdateTime -u <USER_KEY> -k <ORG_TOKEN> -i <PRODUCT_TOKEN_1>,<PRODUCT_TOKEN_2> -n CI_,-test`
+
+---
 
 
 ## Full Usage flags:
