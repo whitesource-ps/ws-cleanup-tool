@@ -11,7 +11,7 @@ on:
   schedule:
     - cron: '0 4 * * *'
 env:
-  TOOL_NAME: ws_cleanuo_tool
+  TOOL_NAME: ws_cleanup_tool
   GIT_USER: ${{ github.actor }}
   COMMIT_ID: ${{ github.sha }}
 jobs:
