@@ -19,6 +19,7 @@ target/
 
 # Excluded Files - Naming Convention
 local-env.*
+local-params.config
 /venv/
 /ws-projects-cleanup/conf/
 /ws_cleanup_tool/cleanup.log
