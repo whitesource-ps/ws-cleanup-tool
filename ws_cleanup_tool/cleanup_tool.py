@@ -63,18 +63,28 @@ class FilterProjectsInt(ABC):
 
     def is_valid_project(self, project):
         def is_tag_exist(p):
+            # tag:value set in the Unified Agent scanCommnet parameter
             project_metadata_d = p.get('project_metadata_d', {})
             if self.conf.analyzed_project_tag_t[0] in project_metadata_d.keys() \
                     and project_metadata_d[self.conf.analyzed_project_tag_t[0]] == self.conf.analyzed_project_tag_t[1]:
+                return True
+            # Add support for tag value defined in the UI
+            elif self.conf.analyzed_project_tag_t[1] in p.get('tags')[0].get('tags').get(self.conf.analyzed_project_tag_t[0], ''):
                 return True
             else:
                 return False
 
         def is_tag_value_contained(p):
+            # tag:value set in the Unified Agent scanCommnet parameter
             project_metadata_d = p.get('project_metadata_d', {})
             if self.conf.analyzed_project_tag_t[0] in project_metadata_d.keys() \
                     and self.conf.analyzed_project_tag_t[1] in project_metadata_d[self.conf.analyzed_project_tag_t[0]]:
                 return True
+            # Add support for tag value defined in the UI
+            elif self.conf.analyzed_project_tag_t[0]:
+                for k, v in p.get('tags')[0].get('tags').items():
+                    if self.conf.analyzed_project_tag_t[0] in k and self.conf.analyzed_project_tag_t[1] in v:
+                        return True
             else:
                 return False
 
@@ -111,6 +121,7 @@ class FilterProjectsByUpdateTime(FilterProjectsInt):
 
         for project in curr_prod_projects:
             project_time = datetime.strptime(project['lastUpdatedDate'], "%Y-%m-%d %H:%M:%S +%f")
+            project['tags'] = ws_conn.get_tags(token=project.get('token'))
             if project_time < archive_date and self.is_valid_project(project):
                 logger.debug(f"Project {project['name']} Token: {project['token']} Last update: {project['lastUpdatedDate']} will be cleaned up")
                 projects_to_archive_q.put(project)
@@ -133,6 +144,10 @@ class FilterProjectsByLastCreatedCopies(FilterProjectsInt):
 
     def get_projects_to_archive_w(self, product_token: str, ws_conn: WS, projects_to_archive_q):
         projects = ws_conn.get_projects(product_token=product_token, sort_by=ws_constants.ScopeSorts.UPDATE_TIME)
+
+        for project in projects:
+            project['tags'] = ws_conn.get_tags(token=project.get('token'))
+
         filtered_projects = [project for project in projects if self.is_valid_project(project)]
         if len(filtered_projects) > self.conf.days_to_keep:
             index = len(filtered_projects) - self.conf.days_to_keep
@@ -233,7 +248,7 @@ def generate_reports_m(reports_desc_list: list) -> list:
 
 
 def generate_report_w(report_desc: dict, connector: WS, w_f_proj_tokens_q) -> None:
-    def get_suffix(entity):     # Handling case where more than 1 suffix
+    def get_suffix(entity):  # Handling case where more than 1 suffix
         return entity if isinstance(entity, str) else entity[0]
 
     if report_desc['report'].bin_sfx:
@@ -333,7 +348,7 @@ def parse_config():
     else:
         maybe_config_file = False
 
-    if maybe_config_file:                             # Covers no conf file or only conf file
+    if maybe_config_file:  # Covers no conf file or only conf file
         if os.path.exists(conf_file):
             logger.info(f"loading configuration from file: {conf_file}")
             config = ConfigParser()
@@ -415,7 +430,7 @@ def get_reports(report_types: str) -> list:
     if report_types:
         report_types_l = report_types.replace(' ', '').split(",")
         reports_to_gen_l = []
-        for r in all_reports:               # Converting list of report meta data tuples to dict
+        for r in all_reports:  # Converting list of report meta data tuples to dict
             reports_d[r.name] = r
 
         for r_t in report_types_l:
