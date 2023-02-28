@@ -206,25 +206,15 @@ def get_products_to_archive(included_product_tokens: list, excluded_product_toke
 
 def exclude_projects(projects_to_archive: list, excluded_project_tokens: list, excluded_project_name_patterns: list) -> list:
     if excluded_project_tokens:
-        if not ([proj for proj in projects_to_archive if proj['token'] in excluded_project_tokens]):
-            logger.error(f"One of the project tokens hasn't been found in the provided products: {excluded_project_tokens} ")
-            exit(-1)
-        else:
-            logger.debug(f"Exclude project tokens: {excluded_project_tokens}")
-            projects = [proj for proj in projects_to_archive if proj['token'] not in excluded_project_tokens]
-    else:
-        projects = projects_to_archive
+        logger.debug(f"Exclude project tokens: {excluded_project_tokens}")
+
+    projects = [proj for proj in projects_to_archive if proj['token'] not in excluded_project_tokens] if excluded_project_tokens else projects_to_archive
 
     if excluded_project_name_patterns:
         for patt in excluded_project_name_patterns:
-            if not ([proj for proj in projects for k, v in proj.items() if k == "name" and patt in v]):
-                logger.error(f"pattern {patt} hasn't been found for any project in the provided products")
-                exit(-1)
-
             logger.debug(f"Exclude projects with name pattern: {patt}")
             projects = [proj for proj in projects for k, v in proj.items() if k == "name" and patt not in v]
-    else:
-        projects = projects_to_archive
+
     logger.info(f"Project names for cleanup check: {[proj['name'] for proj in projects]}")
 
     return projects
