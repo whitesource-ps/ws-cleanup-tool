@@ -17,10 +17,8 @@ from ws_cleanup_tool._version import __description__, __tool_name__, __version__
 
 # skip_report_generation = bool(os.environ.get("SKIP_REPORT_GENERATION", 0))
 # skip_project_deletion = bool(os.environ.get("SKIP_PROJECT_DELETION", 0))
-is_debug = logging.DEBUG if os.environ.get("DEBUG", "").lower() in ['true', '1'] else logging.INFO
-
-logging.basicConfig(level=logging.DEBUG if bool(os.environ.get("DEBUG", "false")) is True else logging.INFO,
-                    handlers=[logging.StreamHandler(stream=sys.stdout)],
+is_debug = logging.DEBUG if os.environ.get("DEBUG", "") in ['True', 'true', 'TRUE', '1'] else logging.INFO
+logging.basicConfig(level=is_debug, handlers=[logging.StreamHandler(stream=sys.stdout)],
                     format='%(levelname)s %(asctime)s %(thread)d %(name)s: %(message)s',
                     datefmt='%y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__tool_name__)
@@ -291,7 +289,10 @@ def worker_delete_project(conn, project, w_dry_run):
         logger.info(f"[DRY_RUN] project: {project['name']}. Last update date is: {project['lastUpdatedDate']}. Token: {project['token']} ")
     else:
         logger.info(f"Deleting project: {project['name']}. Last update date is: {project['lastUpdatedDate']}. Token: {project['token']} ")
-        conn.delete_scope(token=project['token'], project=project)
+        try:
+            conn.delete_scope(token=project['token'], project=project)
+        except Exception as err:
+            logger.info(f"The project token {project['token']} can't be deleted. The reason: {err}")
 
 
 def parse_config():
@@ -440,6 +441,8 @@ def main():
         exit(-1)
 
     logger.info(f"Starting project cleanup in '{conf.operation_mode}' mode. Generating {len(conf.report_types)} report types with {conf.project_parallelism_level} threads")
+    conf.included_product_tokens = list(set(conf.included_product_tokens))
+    conf.excluded_product_tokens = list(set(conf.excluded_product_tokens))
     products_to_clean = get_products_to_archive(conf.included_product_tokens, conf.excluded_product_tokens)
     filter_class = FilterStrategy(globals()[conf.operation_mode](products_to_clean, conf))
     projects_to_archive = filter_class.execute()
