@@ -17,6 +17,7 @@ from ws_cleanup_tool._version import __description__, __tool_name__, __version__
 
 # skip_report_generation = bool(os.environ.get("SKIP_REPORT_GENERATION", 0))
 # skip_project_deletion = bool(os.environ.get("SKIP_PROJECT_DELETION", 0))
+is_debug = logging.DEBUG if os.environ.get("DEBUG", "").lower() in ['true', '1'] else logging.INFO
 
 logging.basicConfig(level=logging.DEBUG if bool(os.environ.get("DEBUG", "false")) is True else logging.INFO,
                     handlers=[logging.StreamHandler(stream=sys.stdout)],
