@@ -63,27 +63,33 @@ class FilterProjectsInt(ABC):
     def is_valid_project(self, project):
         def is_tag_exist(p):
             # tag:value set in the Unified Agent scanCommnet parameter
-            project_metadata_d = p.get('project_metadata_d', {})
-            if self.conf.analyzed_project_tag_t[0] in project_metadata_d.keys() \
-                    and project_metadata_d[self.conf.analyzed_project_tag_t[0]] == self.conf.analyzed_project_tag_t[1]:
-                return True
-            # Add support for tag value defined in the UI
-            elif self.conf.analyzed_project_tag_t[1] in p.get('tags')[0].get('tags').get(self.conf.analyzed_project_tag_t[0], ''):
-                return True
+            if self.conf.analyzed_project_tag_t:
+                project_metadata_d = p.get('project_metadata_d', {})
+                if self.conf.analyzed_project_tag_t[0] in project_metadata_d.keys() \
+                        and project_metadata_d[self.conf.analyzed_project_tag_t[0]] == self.conf.analyzed_project_tag_t[1]:
+                    return True
+                # Add support for tag value defined in the UI
+                elif self.conf.analyzed_project_tag_t[1] in p.get('tags')[0].get('tags').get(self.conf.analyzed_project_tag_t[0], ''):
+                    return True
+                else:
+                    return False
             else:
                 return False
 
         def is_tag_value_contained(p):
             # tag:value set in the Unified Agent scanCommnet parameter
-            project_metadata_d = p.get('project_metadata_d', {})
-            if self.conf.analyzed_project_tag_t[0] in project_metadata_d.keys() \
-                    and self.conf.analyzed_project_tag_t[1] in project_metadata_d[self.conf.analyzed_project_tag_t[0]]:
-                return True
-            # Add support for tag value defined in the UI
-            elif self.conf.analyzed_project_tag_t[0]:
-                for k, v in p.get('tags')[0].get('tags').items():
-                    if self.conf.analyzed_project_tag_t[0] in k and self.conf.analyzed_project_tag_t[1] in v:
-                        return True
+            if self.conf.analyzed_project_tag_t:
+                project_metadata_d = p.get('project_metadata_d', {})
+                if self.conf.analyzed_project_tag_t[0] in project_metadata_d.keys() \
+                        and self.conf.analyzed_project_tag_t[1] in project_metadata_d[self.conf.analyzed_project_tag_t[0]]:
+                    return True
+                # Add support for tag value defined in the UI
+                elif self.conf.analyzed_project_tag_t[0]:
+                    for k, v in p.get('tags')[0].get('tags').items():
+                        if self.conf.analyzed_project_tag_t[0] in k and self.conf.analyzed_project_tag_t[1] in v:
+                            return True
+                else:
+                    return False
             else:
                 return False
 
@@ -115,7 +121,8 @@ class FilterProjectsByUpdateTime(FilterProjectsInt):
         return extract_from_q(projects_to_archive_q)
 
     def get_projects_to_archive_w(self, archive_date, prod, ws_conn, projects_to_archive_q):
-        curr_prod_projects = ws_conn.get_projects(product_token=prod['token'], include_prod_proj_names=True)
+        curr_prod_projects = get_product_projects(product_token=prod['token'])
+        #ws_conn.get_projects(product_token=prod['token'], include_prod_proj_names=True,)
         logger.info(f"Handling product: {prod['name']} number of projects: {len(curr_prod_projects)}")
 
         for project in curr_prod_projects:
@@ -187,7 +194,19 @@ def get_reports_to_archive(projects_to_archive: list) -> list:
 def get_products_to_archive(included_product_tokens: list, excluded_product_tokens: list) -> list:
     if included_product_tokens:
         logger.debug(f"Product tokens to check for cleanup: {included_product_tokens}")
-        prods = [conf.ws_conn.get_scopes(scope_type=ws_constants.ScopeTypes.PRODUCT, token=prod_t).pop() for prod_t in included_product_tokens]
+        '''
+        prods = [
+            conf.ws_conn.get_scopes(scope_type=ws_constants.ScopeTypes.PRODUCT, token=prod_t).pop() for prod_t in included_product_tokens
+        ]
+        '''
+        prods = []
+        for prod_t in included_product_tokens:
+            try:
+                prod_t_ = conf.ws_conn.get_scopes(scope_type=ws_constants.ScopeTypes.PRODUCT, token=prod_t)
+                if prod_t_:
+                    prods.extend(prod_t_)
+            except:
+                pass
     else:
         logger.debug("Getting all products")
         prods = conf.ws_conn.get_products()
@@ -334,7 +353,7 @@ def parse_config():
     if len(sys.argv) < 3:
         maybe_config_file = True
     if len(sys.argv) == 1:
-        conf_file = "../params.config"
+        conf_file = "../local-params.config" if os.path.exists("../local-params.config") else "../params.config"
     elif not sys.argv[1].startswith('-'):
         conf_file = sys.argv[1]
     else:
@@ -460,6 +479,26 @@ def main():
         delete_projects(filtered_projects_to_archive, failed_project_tokens)
 
     logger.info(f"Project Cleanup has been finished. Run time: {datetime.now() - start_time}")
+
+
+def get_product_projects(product_token: str = None) -> list:
+    global conf
+    try:
+        projects = conf.ws_conn.call_ws_api(request_type="getProductProjectVitals", kv_dict={"productToken": product_token})['projectVitals']
+
+        for project in projects:
+            project['type'] = ws_constants.ScopeTypes.PROJECT
+            project["orgToken"] = conf.ws_conn.token
+            project["productToken"] = product_token
+            project['product_name'] = project["productName"]
+            if project.get('lastScanComment'):  # in case of comments trying to restore into dict of: k1:v1;k2:v2...
+                project['project_metadata_d'] = dict([kv.split(':', 1) for kv in project['lastScanComment'].split(';') if ':' in kv])
+        conf.ws_conn.scope_contains.add(ws_constants.ScopeTypes.PROJECT)
+
+        return projects
+    except Exception as err:
+        logger.error(f"Getting projects from product {product_token} failed: {err}")
+        return []
 
 
 if __name__ == '__main__':
