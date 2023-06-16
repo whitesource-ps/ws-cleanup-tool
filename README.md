@@ -5,17 +5,20 @@
 [![PyPI](https://img.shields.io/pypi/v/ws-cleanup-tool?style=plastic)](https://pypi.org/project/ws-cleanup-tool/)
 
 # Mend Projects Cleanup CLI Tool
+* Current version v23.6.1.5
 * The self-hosted CLI tool features cleaning up projects and generating reports before deletion in 2 modes:
   * By stating _OperationMode=FilterProjectsByUpdateTime_ and how many days to keep (-r/ DaysToKeep=)
   * By stating _OperationMode=FilterProjectsByLastCreatedCopies_ and how many copies to keep (-r/ DaysToKeep=)
 * The reports are saved in the designated location as follows: _[ReportsDir]/[PRODUCT NAME]/[PROJECT NAME]/[REPORT NAME]_  
 * To review the outcome before actual deletion use _-y true_ / _DryRun=True_ flag. It will _NOT_ delete any project nor create reports 
 * By default, the tool generates all possible project-level reports. By specifying ((_-t_ / _Reports=_/) it is possible to select specific reports
+  * The full list of available reports is below
 * The full parameters list is available below
 * There are two ways to configure the tool:
   * By configuring _params.config_ on the executed dir or passing a path to the file in the same format
   * By setting command line parameters as specified in the usage below
   
+
 ## Supported Operating Systems
 - **Linux (Bash):**	CentOS, Debian, Ubuntu, RedHat
 - **Windows (PowerShell):**	10, 2012, 2016
@@ -31,9 +34,10 @@
 1. Install by executing: `pip install ws-cleanup-tool`
 2. Configure the appropriate parameters either by using the command line or in `params.config`.
 3. Execute the tool (`ws_cleanup_tool ...`). 
+4. In order to update the tool please run `pip install ws_cleanup_tool --upgrade`
 
 ## Installation and Execution from GitHub:
-1. Download and unzip **ws-cleanup-tool.zip** 
+1. Download and unzip **ws-cleanup-tool.zip** from the most recent tagged release. 
 2. Install requirements: `pip install -r requirements.txt`
 3. Configure the appropriate parameters either by using the command line or `params.config`.
 4. Execute: `python cleanup_tool.py <CONFIG_FILE>` 
@@ -60,7 +64,7 @@ Analyze only the projects that have the specified Mend tag and keep the newest p
 ---
 
 Keep the last 2 weeks and analyze only the projects whose match their tag key and the tag value contains the specified regex:  
-`ws_cleanup_tool -r 14 -m FilterProjectsByUpdateTime -u <USER_KEY> -k <ORG_TOKEN> -g <KEY>:<REGEX_VALUE>`
+`ws_cleanup_tool -r 14 -m FilterProjectsByUpdateTime -u <USER_KEY> -k <ORG_TOKEN> -v <KEY>:<REGEX_VALUE>`
 
 ---
 
@@ -122,5 +126,22 @@ optional arguments:
   -n EXCLUDED_PROJECT_NAME_PATTERNS, --excludedProjectNamePatterns
                     List of excluded project name patterns                 
 ```
+
+## Available reports
+The following Mend project reports are available through the clean-up tool. These values can be specified with the -t flag to generate specific reports.
+* alerts
+* alerts_rejected_by_policy
+* attribution
+* bugs
+* due_diligence
+* ignored_alerts
+* in_house_libraries
+* inventory
+* license_compatibility
+* resolved_alerts
+* request_history
+* source_files
+* source_file_inventory
+* vulnerability
 
 **note:** The optimal cleanup scope is derived from the size of the environment, Mend scope size (memory and CPU) allocated for the server, and runtime time constraints.    
