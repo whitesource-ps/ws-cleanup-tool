@@ -5,6 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/ws-cleanup-tool?style=plastic)](https://pypi.org/project/ws-cleanup-tool/)
 
 # Mend Projects Cleanup CLI Tool
+* Current version v23.6.1.5
 * The self-hosted CLI tool features cleaning up projects and generating reports before deletion in 2 modes:
   * By stating _OperationMode=FilterProjectsByUpdateTime_ and how many days to keep (-r/ DaysToKeep=)
   * By stating _OperationMode=FilterProjectsByLastCreatedCopies_ and how many copies to keep (-r/ DaysToKeep=)
@@ -33,8 +34,7 @@
 1. Install by executing: `pip install ws-cleanup-tool`
 2. Configure the appropriate parameters either by using the command line or in `params.config`.
 3. Execute the tool (`ws_cleanup_tool ...`). 
-
-The current version of the tool is v23.6.1.4 in order to update the tool please run `pip install ws_cleanup_tool --upgrade`
+4. In order to update the tool please run `pip install ws_cleanup_tool --upgrade`
 
 ## Installation and Execution from GitHub:
 1. Download and unzip **ws-cleanup-tool.zip** from the most recent tagged release. 
