@@ -4,6 +4,9 @@
 [![Python 3.6](https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Blue_Python_3.6%2B_Shield_Badge.svg/86px-Blue_Python_3.6%2B_Shield_Badge.svg.png)](https://www.python.org/downloads/release/python-360/)
 [![PyPI](https://img.shields.io/pypi/v/ws-cleanup-tool?style=plastic)](https://pypi.org/project/ws-cleanup-tool/)
 
+
+> ⚠️ This repo is currently depreciated. Please use the new script found in the Mend Toolkit: [SCA Cleanup Tool](https://github.com/mend-toolkit/sca-cleanup-tool) 
+
 # Mend Projects Cleanup CLI Tool
 * Current version v23.6.1.5
 * The self-hosted CLI tool features cleaning up projects and generating reports before deletion in 2 modes:
